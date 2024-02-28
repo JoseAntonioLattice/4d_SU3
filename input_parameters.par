@@ -1,0 +1,7 @@
+&input_parameters
+L = 8,
+N_thermalization = 100,
+N_measurements = 100,
+N_skip = 10,
+algorithm = "metropolis"
+/
