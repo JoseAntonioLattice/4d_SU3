@@ -3,9 +3,9 @@ module dynamics
   use iso_fortran_env, only: dp => real64, i4 => int32
   use data_types_observables, only : link_variable, complex_3x3_matrix
   use matrix_operations
-  !use local_update_algorithms
+  use local_update_algorithms
   use periodic_boundary_conditions_mod
-  !use get_index_mod
+  use get_index_mod
 
   implicit none
 
@@ -61,8 +61,8 @@ contains
           do z = 1, L
              do w = 1, L
                 do mu = 1, d
-                  ! Delta_S = (beta/N) * DS(U,mu,Up,[x,y,z,w])
-                  ! call metropolis(Delta_S,U(x,y,z,w)%link(mu)%matrix,Up%matrix)
+                   Delta_S = (beta/N) * DS(U,mu,Up,[x,y,z,w])
+                   call metropolis(Delta_S,U(x,y,z,w)%link(mu)%matrix,Up%matrix)
                 end do
              end do
           end do
@@ -143,7 +143,7 @@ contains
 !  function DS2(U,x,mu,beta_N,d,Up)
 !    type(link_variable), dimension(:,:), intent(inout) :: U
 !    integer(i4), intent(in) :: x, mu, d
-!    real(dp), intent(in) :: beta_N
+!    rgiteal(dp), intent(in) :: beta_N
     !type(complex_2x2_matrix), intent(out) :: Up
    ! type(complex_2x2_matrix) :: Uold
   !  real(dp) :: DS2, Sold, Snew

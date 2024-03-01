@@ -39,94 +39,7 @@ contains
 
   end subroutine glauber
 
-  subroutine heatbath_gattringer(U,x,mu,beta)
-
-    type(link_variable), dimension(:), intent(inout) :: U
-    integer(i4), intent(in) :: x, mu
-    real(dp), intent(in) :: beta
-    type(complex_2x2_matrix) :: A, V, XX
-    complex(dp) :: c_a, b
-    real(dp) :: det_A, sqrt_det_A
-    real(dp) :: x0, x_vec(3), norm_x
-    real(dp) :: r(3), s
-    real(dp) :: lambdasq
-    real(dp), parameter :: pi = acos(-1.0_dp)
-    complex(dp) :: c1,c2, det_staple_complex
-    real(dp) :: d1, d2, d3, d4
-
-    A = staples(U,x,mu)
-
-    det_A = det(A)
-    if (det_A <= 0.0_dp)then
-       call create_unbiased_update(U(x)%link(mu))
-       return
-    end if
-
-    sqrt_det_A = sqrt(det_A)
-    V%matrix = A%matrix/sqrt_det_A
-
-    call generate_lambdasq(sqrt_det_A,beta,lambdasq,s)
-    do while ( s**2 > 1.0_dp - lambdasq )
-       call generate_lambdasq(det_A,beta,lambdasq,s)
-    end do
-
-    x0 = 1.0_dp - 2 * lambdasq
-    norm_x = sqrt(1.0_dp - x0*x0)
-
-    x_vec = norm_x * random_vector()
-
-    c1 = cmplx(x0,x_vec(1),dp)
-    c2 = cmplx(x_vec(2),x_vec(3),dp)
-
-    XX = SU2_matrix(c1,c2)
-
-    U(x)%link(mu) = XX * V
-    !print*, det(XX), det(V), det(XX * V)
-
-  end subroutine heatbath_gattringer
-
-
-  subroutine heatbath(U,x,mu,beta)
-    type(link_variable), dimension(:), intent(inout) :: U
-    integer(i4), intent(in) :: x, mu
-    real(dp), intent(in) :: beta
-
-    real(dp) :: a, b, a0, a_vec(3), norm_a
-    type(complex_2x2_matrix) :: staple, XX, V, prod
-    logical :: boolean
-
-    complex(dp) :: c1,c2
-    real(dp) :: det_staple, sqrt_det_staple, d1, d2, d3, d4,r
-
-    staple = staples(U,x,mu)
-    det_staple = det(staple)
-    sqrt_det_staple = sqrt(det_staple)
-    V%matrix = staple%matrix/sqrt_det_staple
-
-    a = exp(-2*beta*sqrt_det_staple)
-    b = 1.0_dp
-
-    boolean = .false.
-    do while( boolean .eqv. .false.)
-      r = random_uniform(a,b)
-      a0 = 1.0_dp + log(r)/(beta * sqrt_det_staple)
-      call random_number(r)
-      if( r > 1.0_dp - sqrt(1.0_dp - a0**2)) boolean = .true.
-    end do
-
-    norm_a = sqrt(1.0_dp - a0**2)
-
-    a_vec = norm_a * random_vector()
-
-    c1 = cmplx(a0,a_vec(1),dp)
-    c2 = cmplx(a_vec(2),a_vec(3),dp)
-
-    XX = SU2_matrix(c1,c2)
-
-    U(x)%link(mu) = XX * V
-
-  end subroutine heatbath
-
+  
   function random_vector() result(y)
     real(dp), parameter :: pi = acos(-1.0_dp)
     real(dp) :: theta, phi
@@ -143,7 +56,7 @@ contains
 
   function SU2_matrix(a,b) result(matrix)
     complex(dp), intent(in)  :: a, b
-    type(complex_2x2_matrix) :: matrix
+    type(complex_3x3_matrix) :: matrix
       matrix%matrix(1,1) = a
       matrix%matrix(1,2) = b
       matrix%matrix(2,1) = -conjg(b)
@@ -164,7 +77,7 @@ contains
 
 
   subroutine create_update(Up)
-    type(complex_2x2_matrix), intent(out) :: Up
+    type(complex_3x3_matrix), intent(out) :: Up
     complex(dp) :: a, b
     real(dp), dimension(0:3) :: r, x
     real(dp), parameter :: eps = 0.1_dp
@@ -185,17 +98,12 @@ contains
   end subroutine create_update
 
   subroutine create_unbiased_update(Up)
-    type(complex_2x2_matrix), intent(out) :: Up
-    complex(dp) :: a, b
-    real(dp), dimension(0:3) :: r
+    type(complex_3x3_matrix), intent(out) :: Up
+    complex(dp), dimension(3) :: uu, vv
+    real(dp), dimension(6) :: r1,r2
+    type(complex_3x3_matrix) :: R, S, T
 
-    call random_number(r)
-    r = r - 0.5_dp
-    r = r/norm2(r)
-    a = cmplx(r(0),r(1),dp)
-    b = cmplx(r(2),r(3),dp)
-
-    Up = SU2_matrix(a,b)
+    
 
   end subroutine create_unbiased_update
 
@@ -215,43 +123,55 @@ contains
 
   function staples(U,x,mu) result(A)
 
-    use parameters, only : L, d
-
-    type(link_variable), dimension(:), intent(in) :: U
-    integer(i4), intent(in) :: x, mu
+    type(link_variable), dimension(:,:,:,:), intent(in) :: U
+    integer(i4), intent(in) :: x(4), mu
     integer(i4) :: nu
-    type(complex_2x2_matrix) :: A
+    integer(i4), parameter :: d = 4
+    type(complex_3x3_matrix) :: A
 
-    integer(i4) :: ipx_mu, ipx_nu, imx_nu, ipx_mu_imx_nu
+    integer(i4), dimension(4) :: ipx_mu, ipx_nu, imx_nu, ipx_mu_imx_nu
 
     A%matrix = 0.0_dp
     do nu = 1, d
        if(nu .ne. mu)then
           !print*, "inside staples", "mu=",mu,"nu=",nu,x, get_index_array(x,d,L), &
           !     ip_func(get_index_array(x,d,L),mu), ip_func(get_index_array(x,d,L),nu), im_func(get_index_array(x,d,L),nu)
-          ipx_mu = get_index(ip_func(get_index_array(x,d,L),mu),d,L)
-          ipx_nu = get_index(ip_func(get_index_array(x,d,L),nu),d,L)
-          imx_nu = get_index(im_func(get_index_array(x,d,L),nu),d,L)
+          ipx_mu = ip_func(x,mu)
+          ipx_nu = ip_func(x,nu)
+          imx_nu = im_func(x,nu)
           !print*, 'imx_nu',imx_nu, get_index_array(imx_nu,d,L)
-   ipx_mu_imx_nu = get_index(ip_func(get_index_array(imx_nu,d,L),mu),d,L)
+          ipx_mu_imx_nu = ip_func(imx_nu,mu)
           !print*, "before computing staples"
 
-          A = A +    U(   x  )%link(nu)  * U(ipx_nu)%link(mu) * dagger(U(ipx_mu       )%link(nu)) +  &
-              dagger(U(imx_nu)%link(nu)) * U(imx_nu)%link(mu) *        U(ipx_mu_imx_nu)%link(nu)
+          A = A +    U(   x(1)  ,   x(2)  ,   x(3)  ,   x(4)  )%link(nu)  &
+                   * U(ipx_nu(1),ipx_nu(2),ipx_nu(3),ipx_nu(4))%link(mu)  &
+            * dagger(U(ipx_mu(1),ipx_mu(2),ipx_mu(3),ipx_mu(4))%link(nu)) &
+            + dagger(U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(nu)) &
+                   * U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(mu)  &
+                   * U(ipx_mu_imx_nu(1),ipx_mu_imx_nu(2),ipx_mu_imx_nu(3),ipx_mu_imx_nu(4))%link(nu)
        end if
     end do
-    end function staples
+  end function staples
 
+  function cross(u,v)
+    complex(dp), dimension(3), intent(in) :: u, v
+    complex(dp), dimension(3) :: cross
+    
+    cross(1) = u(2) * v(3) - u(3) * v(2) 
+    cross(2) =-u(1) * v(3) + u(3) * v(1)
+    cross(3) = u(1) * v(2) - u(2) * v(1)
+  end function cross
+    
   function DS(U,mu,Up,x)
-    type(link_variable), dimension(:), intent(in) :: U
-    integer(i4), intent(in) :: x, mu
-    type(complex_2x2_matrix), intent(out) :: Up
+    type(link_variable), dimension(:,:,:,:), intent(in) :: U
+    integer(i4), intent(in) :: x(4), mu
+    type(complex_3x3_matrix), intent(out) :: Up
     real(dp) :: DS
 
     call create_unbiased_update(Up)
     !call create_update(Up); Up = Up * U(x,y)%link(mu)
 
-    DS = - real( tr( (Up - U(x)%link(mu)) * dagger(staples(U,x,mu)) ) )
+    DS = - real( tr( (Up - U(x(1),x(2),x(3),x(4))%link(mu)) * dagger(staples(U,x,mu)) ) )
 
   end function DS
 
