@@ -76,9 +76,8 @@ contains
   end subroutine generate_lambdasq
 
 
-  subroutine create_update(Up)
-    type(complex_3x3_matrix), intent(out) :: Up
-    complex(dp) :: a, b
+  subroutine create_complex_numbers(a,b)
+    complex(dp), intent(out) :: a, b
     real(dp), dimension(0:3) :: r, x
     real(dp), parameter :: eps = 0.1_dp
     real(dp) :: norm_r
@@ -93,19 +92,33 @@ contains
     a = cmplx(x(0),x(1),dp)
     b = cmplx(x(2),x(3),dp)
 
-    Up = SU2_matrix(a,b)
+  end subroutine create_complex_numbers
 
-  end subroutine create_update
-
-  subroutine create_unbiased_update(Up)
-    type(complex_3x3_matrix), intent(out) :: Up
+  subroutine create_biased_update(X)
+    type(complex_3x3_matrix), intent(out) :: X
     complex(dp), dimension(3) :: uu, vv
     real(dp), dimension(6) :: r1,r2
     type(complex_3x3_matrix) :: R, S, T
+    complex(dp) :: a, b
+
+    R%matrix = reshape([1.0_dp,0.0_dp,0.0_dp, 0.0_dp,1.0_dp,0.0_dp, 0.0_dp,0.0_dp,1.0_dp], [3,3])
+    S = R
+    T = R
+
+    call create_complex_numbers(a,b)
+    R%matrix(1,1) = a; R%matrix(1,2) = b; R%matrix(2,1)= -conjg(b); R%matrix(2,2) = conjg(a)
 
     
+    call create_complex_numbers(a,b)
+    S%matrix(1,1) = a; S%matrix(1,3) = b; S%matrix(3,1)= -conjg(b); S%matrix(3,3) = conjg(a)
 
-  end subroutine create_unbiased_update
+    
+    call create_complex_numbers(a,b)
+    T%matrix(2,2) = a; T%matrix(2,3) = b; T%matrix(3,2)= -conjg(b); T%matrix(3,3) = conjg(a)
+
+    X = R * S * T
+    
+  end subroutine create_biased_update
 
   pure function sgn(x)
     real(dp), intent(in) :: x
@@ -134,14 +147,10 @@ contains
     A%matrix = 0.0_dp
     do nu = 1, d
        if(nu .ne. mu)then
-          !print*, "inside staples", "mu=",mu,"nu=",nu,x, get_index_array(x,d,L), &
-          !     ip_func(get_index_array(x,d,L),mu), ip_func(get_index_array(x,d,L),nu), im_func(get_index_array(x,d,L),nu)
           ipx_mu = ip_func(x,mu)
           ipx_nu = ip_func(x,nu)
           imx_nu = im_func(x,nu)
-          !print*, 'imx_nu',imx_nu, get_index_array(imx_nu,d,L)
           ipx_mu_imx_nu = ip_func(imx_nu,mu)
-          !print*, "before computing staples"
 
           A = A +    U(   x(1)  ,   x(2)  ,   x(3)  ,   x(4)  )%link(nu)  &
                    * U(ipx_nu(1),ipx_nu(2),ipx_nu(3),ipx_nu(4))%link(mu)  &
@@ -168,7 +177,8 @@ contains
     type(complex_3x3_matrix), intent(out) :: Up
     real(dp) :: DS
 
-    call create_unbiased_update(Up)
+    call create_biased_update(Up)
+    Up = Up * U(x(1),x(2),x(3),x(4))%link(mu)
     !call create_update(Up); Up = Up * U(x,y)%link(mu)
 
     DS = - real( tr( (Up - U(x(1),x(2),x(3),x(4))%link(mu)) * dagger(staples(U,x,mu)) ) )
