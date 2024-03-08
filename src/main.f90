@@ -16,38 +16,25 @@ program main
   allocate(U(L,L,L,L))
   allocate(E_p%array(N_measurements))
 
-  beta = [(i*0.5, i = 1, 16)]
+  beta = [8.0_dp]![(i*0.5_dp, i = 1, 20)]
   
   
 
   call set_periodic_bounds(L)
   
-  !print*, det(U(L,L,L,L)%link(4)%matrix)
-  !print*, "U1", U(1,1,1,1)%link(1)
-  !print*, "U2", U(1,1,1,1)%link(2)
-  !print*, "U1+U2",U(1,1,1,1)%link(1) + U(1,1,1,1)%link(2)
-  open(unit = 100, file = 'data/Ep_metropolis.dat')
-  !write(100,*) -action(U,L,1.0_dp/3)/L**4
+  open(unit = 100, file = 'data/Ep_'//trim(algorithm)//'.dat')
 
-
-  call hot_start(U)
+  call cold_start(U)
 
   do i_beta = 1, size(beta)
-  
-     do i = 1, N_thermalization
-        call sweeps(U,L,beta(i_beta),3,4,"metropolis")     
-        !write(100,*) -action(U,L,1.0_dp/3)/L**4
-     end do
- 
-     do i = 1, N_measurements*N_skip
-        call sweeps(U,L,beta(i_beta),3,4,"metropolis")     
-        if(mod(i,N_skip) == 0)then
-           E_p%array(i/N_skip) = -action(U,L,1.0_dp/3)/L**4
-           !write(100,*) E_p%array(i/N_skip)
-        end if
-     end do
+     !print*, beta(i_beta), "Before Thermalization"
+     call thermalization(U,L,beta(i_beta),3,4,algorithm,N_thermalization)
+     !print*, beta(i_beta), "After Thermalization"
+     call measurements_sweeps(U,L,beta(i_beta),3,4,algorithm,N_measurements,N_skip,E_p%array)
+     !print*, beta(i_beta), "After Measurements"
      call std_err(E_p%array,E_p%avr, E_p%err)
      write(100,*) beta(i_beta),E_p%avr, E_p%err
+     print*, beta(i_beta),E_p%avr, E_p%err
   end do
   
   

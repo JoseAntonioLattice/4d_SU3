@@ -41,7 +41,7 @@ contains
      do i = 1, N_measurements*N_skip
         call sweeps(U,L,beta,N,d,algorithm)
         if( mod(i,N_skip) == 0)then
-           !E_p(i/N_skip) = action(U,-1.0_dp/N,d)/(L**d)
+           E_p(i/N_skip) = action(U,L,-1.0_dp/N)/(L**d)
         end if
      end do
 
@@ -61,8 +61,10 @@ contains
           do z = 1, L
              do w = 1, L
                 do mu = 1, d
-                   Delta_S = (beta/N) * DS(U,mu,Up,[x,y,z,w])
-                   call metropolis(Delta_S,U(x,y,z,w)%link(mu)%matrix,Up%matrix)
+                   !Delta_S = DS(U,mu,Up,[x,y,z,w],beta,N)
+                   !call metropolis(Delta_S,U(x,y,z,w)%link(mu)%matrix,Up%matrix)
+                   !print*, x,y,z,w,mu
+                   call heatbath(U,[x,y,z,w],mu,beta)
                 end do
              end do
           end do
