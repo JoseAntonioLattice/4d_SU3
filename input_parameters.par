@@ -1,6 +1,6 @@
 &input_parameters
-L = 3,
-N_thermalization = 100,
+L = 6,
+N_thermalization = 50,
 N_measurements = 100,
 N_skip = 10,
 algorithm = "heatbath"

@@ -45,103 +45,136 @@ contains
     integer(i4), intent(in) :: mu
     real(dp), intent(in) :: beta
     type(complex_3x3_matrix) :: R, S, T, W, A, Up
-    complex(dp), dimension(2,2) :: R2, S2, T2
+    complex(dp), dimension(2,2) :: R2, S2, T2, W2
 
     
-    A = staples(U,x,mu)
-    W = U(x(1),x(2),x(3),x(4))%link(mu) * dagger(A)
+    A = dagger(staples(U,x,mu))
+    W = U(x(1),x(2),x(3),x(4))%link(mu) * A
 
-    call generate_random_su2_matrix(W,R,1,beta)
-    call generate_random_su2_matrix(R*W,S,2,beta)
-    call generate_random_su2_matrix(S*R*W,T,3,beta)
-  
+    W2 = turn_2x2(W,1)
+    call heatbath_SU2(W2,R2,2*beta/3)
+    R = turn_to_SU3(R2,1)
+    call heatbath_SU2(turn_2x2(R*W,2),S2,2*beta/3)
+    S = turn_to_SU3(S2,2)
+    call heatbath_SU2(turn_2x2(S*R*W,3),T2,2*beta/3)
+    T = turn_to_SU3(T2,3)
+    
     U(x(1),x(2),x(3),x(4))%link(mu) = T * S * R * U(x(1),x(2),x(3),x(4))%link(mu)
     
-
   end subroutine heatbath
 
-  subroutine generate_random_su2_matrix(W,R,n,beta)
-    type(complex_3x3_matrix), intent(in) :: W
-    type(complex_3x3_matrix), intent(out) :: R
-    complex(dp), dimension(2,2) :: mat
-    integer(i4), intent(in) :: n
-    real(dp), intent(in) :: beta
-    complex(dp), dimension(2,2) :: W2
-    complex(dp) ::  a ,b
-    real(dp) :: k, u, s, c(0:3), detW2, sqrt_detW2,x(0:3)
-    logical :: accept
 
-    R%matrix = 0.0_dp
-    
+  function turn_2x2(A,n) result(X)
+    type(complex_3x3_matrix) :: A
+    integer(i4), intent(in) :: n
+    complex(dp), dimension(2,2) :: X
+
     select case(n)
     case(1)
-       W2 = reshape([W%matrix(1,1),W%matrix(2,1),W%matrix(1,2),W%matrix(2,2)],[2,2])
+       X(1,1) = A%matrix(1,1)
+       X(1,2) = A%matrix(1,2)
+       X(2,1) = A%matrix(2,1)
+       X(2,2) = A%matrix(2,2)
     case(2)
-       W2 = reshape([W%matrix(1,1),W%matrix(3,1),W%matrix(1,3),W%matrix(3,3)],[2,2])
+       X(1,1) = A%matrix(1,1)
+       X(1,2) = A%matrix(1,3)
+       X(2,1) = A%matrix(3,1)
+       X(2,2) = A%matrix(3,3)
     case(3)
-       W2 = reshape([W%matrix(2,2),W%matrix(3,2),W%matrix(2,3),W%matrix(3,3)],[2,2])
+       X(1,1) = A%matrix(2,2)
+       X(1,2) = A%matrix(2,3)
+       X(2,1) = A%matrix(3,2)
+       X(2,2) = A%matrix(3,3)
     end select
 
-    detW2 = det2(W2)
-    sqrt_detW2 = sqrt(detW2)
-        
-    call random_number(u)
+  
+  end function turn_2x2
+  
+  function turn_to_SU3(A,n) result(X)
+    complex(dp), dimension(2,2) :: A
+    integer(i4) :: n
+    type(complex_3x3_matrix) :: X
 
-    k = 2*beta/3*sqrt_detW2
+    X%matrix = 0.0_dp
+
+    select case(n)
+    case(1)
+       X%matrix(1,1) = A(1,1)
+       X%matrix(1,2) = A(1,2)
+       X%matrix(2,1) = A(2,1)
+       X%matrix(2,2) = A(2,2)
+       X%matrix(3,3) = 1.0_dp
+    case(2)
+       X%matrix(1,1) = A(1,1)
+       X%matrix(1,3) = A(1,2)
+       X%matrix(3,1) = A(2,1)
+       X%matrix(3,3) = A(2,2)
+       X%matrix(2,2) = 1.0_dp
+    case(3)
+       X%matrix(2,2) = A(1,1)
+       X%matrix(2,3) = A(1,2)
+       X%matrix(3,2) = A(2,1)
+       X%matrix(3,3) = A(2,2)
+       X%matrix(1,1) = 1.0_dp
+    end select
     
+  end function turn_to_SU3
+  
+  subroutine heatbath_SU2(W,R,beta)
+    complex(dp), dimension(2,2), intent(in)  :: W
+    complex(dp), dimension(2,2), intent(out) :: R
+    real(dp), intent(in) :: beta
+
+    complex(dp), dimension(2,2) :: V
+
+    real(dp) :: k, a, b, s, u, x0,x(3)
+
+    logical :: accept
+    
+    R = turn_to_SU2_matrix(W)
+    k = sqrt(det2(R))
+
+    V = R/k
+
+    a = exp(-2*k*beta)
+    b = 1.0_dp
+
     accept = .false.
     do while( accept .eqv. .false. )
-       u = random_uniform(exp(-2*k),1.0_dp)
-       x(0) = 1.0_dp + 1/(k)*log(u)
+       u = random_uniform(a,b)
+       x0 = 1.0_dp + log(u)/(beta*k)
        call random_number(s)
-       if( s > 1.0_dp - sqrt(1.0_dp - (x(0))**2) ) accept = .true.
-    end do
-
-    accept = .false.
-    do while(accept .eqv. .false.)
-       call random_number(x(1:3))
-       x(1:3) = 2*x(1:3) - 1.0_dp
-       if(norm2(x(1:3)) < 1.0_dp) accept = .true.
+       if( s > 1.0_dp - sqrt(1.0_dp - x0**2)) accept = .true.
     end do
     
-    x(1:3) = sqrt(1.0_dp - (x(0))**2) * x(1:3)/norm2(x(1:3))
+    x = sqrt(1.0_dp - x0**2) * random_vector()
 
-    a = cmplx(x(0),x(1),dp)
-    b = cmplx(x(2),x(3),dp)
-    
-    mat = SU2_matrix(a,b)
-    
-    select case(n)
-    case(1)
-       R%matrix(1,1) = mat(1,1)
-       R%matrix(2,1) = mat(2,1)
-       R%matrix(1,2) = mat(1,2)
-       R%matrix(2,2) = mat(2,2)
-       R%matrix(3,3) = 1.0_dp
-    case(2)
-       R%matrix(1,1) = mat(1,1)
-       R%matrix(3,1) = mat(2,1)
-       R%matrix(1,3) = mat(1,2)
-       R%matrix(3,3) = mat(2,2)
-       R%matrix(2,2) = 1.0_dp
-    case(3)
-       R%matrix(2,2) = mat(1,1)
-       R%matrix(3,2) = mat(2,1)
-       R%matrix(2,3) = mat(1,2)
-       R%matrix(3,3) = mat(2,2)
-       R%matrix(1,1) = 1.0_dp
-    end select
-    
-  end subroutine generate_random_su2_matrix
+    R = SU2_matrix(cmplx(x0,x(1),dp),cmplx(x(2),x(3),dp))
 
+    R = matmul(R,conjg(transpose(V)))
+    
+  end subroutine heatbath_SU2
 
+  function turn_to_SU2_matrix(M) result(X)
+    complex(dp), dimension(2,2), intent(in) :: M
+    complex(dp), dimension(2,2) :: X
+
+    complex(dp) :: a, b
+
+    a = 0.5 * ( M(1,1) + conjg(M(2,2)) )
+    b = 0.5 * ( M(1,2) - conjg(M(2,1)) )
+
+    X = SU2_matrix(a,b)
+    
+  end function turn_to_SU2_matrix
+
+  
   function det2(W)
     complex(dp), dimension(2,2) :: W
     real(dp) :: det2
     
-    !det2 = real(W(1,1)*W(2,2) - W(2,1)*W(1,2))
     det2 = (W(1,1)%re)**2 + (W(1,1)%im)**2 + (W(1,2)%re)**2 + (W(1,2)%im)**2
-    
+        
   end function det2
   
   

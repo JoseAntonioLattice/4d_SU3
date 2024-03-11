@@ -16,7 +16,7 @@ program main
   allocate(U(L,L,L,L))
   allocate(E_p%array(N_measurements))
 
-  beta = [8.0_dp]![(i*0.5_dp, i = 1, 20)]
+  beta = [(i*0.1_dp, i = 1, 80)]
   
   
 
@@ -24,7 +24,7 @@ program main
   
   open(unit = 100, file = 'data/Ep_'//trim(algorithm)//'.dat')
 
-  call cold_start(U)
+  call hot_start(U)
 
   do i_beta = 1, size(beta)
      !print*, beta(i_beta), "Before Thermalization"
