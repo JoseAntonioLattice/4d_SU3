@@ -107,14 +107,94 @@ The change in the action  by a local update when changing $U_{\mu}(x) \to U'_{\m
 	\Delta S = -\frac{\beta}{N} \text{Re } \text{Tr} \left[ \left( U'_{\mu}(x) - U_{\mu}(x) \right)\Sigma_{\mu}^{\dagger}\right]
 \end{equation}
 
+In SU(3) the SU(2) elements are of the form
+\begin{equation}
+\label{eq:SU2_subgroups}
+	R = \begin{pmatrix}
+		r_{11} & r_{12} & 0 \\
+		r_{21} & r_{22} & 0 \\
+		0      & 0      & 1 
+	\end{pmatrix},\ S = \begin{pmatrix}
+		s_{11} & 0 & s_{12} \\
+		0      & 1 & 0 \\
+		s_{21} & 0 & s_{22} 
+	\end{pmatrix},\ T = \begin{pmatrix}
+		1 & 0 & 0 \\
+		0 & r_{11} & r_{21} \\
+		0 & r_{21} & r_{22}
+	\end{pmatrix}.
+\end{equation}
+
 
 \section{Algorithms}
 
+\subsection{Metropolis}
+\begin{enumerate}
+	\item Given some gauge field configuration, we go through all the lattice points in a lexicographic way. At each point $x$ in the $\mu$ direction we generate a random SU(2) matrix $U'_{\mu}(x)$.
+	
+	\item We compute the sum of the staples and compute the change of the action according to eq.\ \eqref{eq:DS}. We generate a uniform random number $r\in [0,1)$ and accept the change if $r \leq p$, where $p$ is
+	\begin{equation}
+		p = \min (1, \exp(-\Delta S)).
+\end{equation}	 
+\end{enumerate}
+
+\subsection{Heatbath}
+The heatbath algorithm was first implemented by Creutz for the SU(2) theory \cite{creutz1980} and generalized to SU($N$) theories by Cabbibo and Marinari \cite{cabbibo1982}. The idea for implementing the algorithm in SU($N$) is to iterate over a set of SU(2) subgroups in SU($N$) and apply the heatbath algorithm to these SU(2) elements. 
+
+\begin{enumerate}
+	\item Given some field configuration at a point $x$ and direction $\mu$, we find the sum of staples $\Sigma_{\mu}(x)$ in eq.\ \eqref{eq:staples}.
+	
+	\item We compute $W = U_{\mu}(x) \Sigma_{\mu}^{\dagger}(x)$ and define $W_2$ as the $2\times 2$ submatrix of $W$ that has the same block structure as $R$ (or $S$ or $T$).
+	
+	\item $W_2$ is a complex $2\times 2$ matrix which is generally not an element of SU(2). As described in Ref.\ \cite{kennedy1985}, we generate a matrix proportional to an SU(2) element from $W_2$ as follows
+	\begin{equation}
+	V = \frac{1}{2} \left[ W_2 - W_2^{\dagger} + \mathds{1}\text{Tr}\ W_2^{\dagger}\right]
+	\end{equation}
+	\item We compute the determinant of $V$ and take $\xi = \sqrt{\det V}$
+	
+	\item We follow the original heatbath implementation of Creutz. We generate a uniform random number $r \in [\exp(-\frac{4}{3}\beta \xi),1]$ and compute
+	\begin{equation}
+		x_0 = 1 + \frac{\log r}{\frac{2}{3}\beta \xi}.
+	\end{equation}		
+	
+	Now we generate a uniform random number $u\in [0,1)$ and accept $x_0$ if $ u > 1 - \sqrt{1-x_0^2}$. Repeat this step until a $x_0$ is accepted.
+	
+	\item We now generate a vector $\vec{x} = (x_1,x_2,x_3)$ in the unit 2-sphere uniformly distributed. This may be acomplished as follows. We generate three random numbers $\vec{r} = (r_1,r_2,r_3)$ in the interval $[-1,1]$ and accept them if they are inside the unit 3-sphere. Otherwise we generate other three numbers until they are accepted. Once they are accepted we take
+	\begin{equation}
+		\vec{x} = \sqrt{1 - x_0^2} \frac{\vec{r}}{|\vec{r}\,|}.
+	\end{equation}
+	\item We have generated the elements of a SU(2) matrix $X$
+	\begin{equation}
+		X = \begin{pmatrix}
+			x_0 + ix_1 & x_2 + ix_3 \\
+		   -x_2 + ix_3 & x_0 - ix_1
+		\end{pmatrix}
+	\end{equation}
+	\item We take
+		\begin{equation}
+			R_2 = X \frac{V^{\dagger}}{\xi}.
+		\end{equation}
+		And transform this $2\times 2$ matrix to the same block structure as the $3\times 3$ matrix $R$ (or $S$ or $T$).
+		\item We go to step 2 and repeat the process to generate $S$ (or $T$) but this time taking $W = R U_{\mu}(x)\Sigma_{\mu}(x)$ (or $W = S R U_{\mu}(x)\Sigma_{\mu}(x)$).
+	\item The new link element $U'_{\mu}(x)$ is
+	\begin{equation}
+		U'_{\mu}(x) = T S R U_{\mu}(x).
+	\end{equation}			
+\end{enumerate}
 
 \section{Results}
 
-\section{Acknowledgements}
+We present simulation results for the 4-dimensional SU(3) lattice gague field theory. We implement two different local update algorithms, namely, Metropolis and Heatbath. Figure \ref{fig:Ep} shows the energy density $E_{\text{P}}$ as a function of $\beta = \frac{6}{g^2}$. There is a maximum of the slope at $5<\beta<6$, however this is not an indication of a phase transition.
 
+\begin{center}
+\begin{figure}
+\includegraphics[scale=0.6]{../images/L=6_heatbath_L=3_metropolis.pdf}
+\caption{Energy density vs. $\beta = \frac{6}{g^2}$. We simulated the SU(3) pure gauge theory in four dimensions using the Metropolis and Heatbath algorithms.}
+\label{fig:Ep}
+\end{figure}
+\end{center}
+\section{Acknowledgements}
+The author thanks Dr.\ Wolfgang Bietenholz for funding (in the form of meals) this research. Thanks to Dr.\ Urs Gerber for providing a recipe for implementing the heatbath algorithm for the U(1) gauge theory at an early stage of this research. Finally, I want to thank Ariana Grande, The Weeknd and Polyphia for giving the right inspiration while working on this paper. Without their music I could have easily gone crazy.
 
 
 \begin{thebibliography}{99}
@@ -132,7 +212,12 @@ J.\ Chem.\ Phys.\ {\bf 21} (1953) 1087.
 \bibitem{Gerber} U.\ Gerber,
   \emph{Heatbath Algorithm for the 2d U(1) Model}.
   Informal Notes. Universidad Nacional Autónoma de México, 2015.  
+  
+  \bibitem{creutz1980} M. Creutz, \emph{Monte Carlo Study of the Quantized SU(2) Gauge Theory.} Phys.\ Rev.\ D {\bf 21} (1980) 2308-2315.
 
+\bibitem{cabbibo1982} N. Cabbibo, E. Marinari, \emph{A New Method for Updating SU(N) Matrices in Computer Simulations of Gauge Theories}, Phys.\ Lett.\ B {\bf 119} (1982) 387-390.
+
+\bibitem{kennedy1985} A.D.\ Kennedy, B.J.\ Pendleton, \emph{Improved Heatbath Method for Monte Carlo Calculations in Lattice Gauge Theories}, Phys.\ Lett.\ {\bf 156B} (1985) 393-399.
 \end{thebibliography}
 
 \end{document}
