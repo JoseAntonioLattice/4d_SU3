@@ -25,7 +25,7 @@ program analysis
 
   integer(i4) :: i
   
-  !call read_input()
+  call read_input()
 
   N_measurements = 100
 

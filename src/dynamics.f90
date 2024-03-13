@@ -14,6 +14,28 @@ module dynamics
 
 contains
 
+  subroutine equilibrium_dynamics(U,L,beta,N,d,algorithm,N_thermalization,N_measurements,N_skip)
+    use starts
+    type(link_variable), intent(inout), dimension(:,:,:,:) :: U
+    integer(i4), intent(in)  :: L, N, d
+    real(dp), intent(in), dimension(:) :: beta
+    character(*), intent(in) :: algorithm
+    integer(i4), intent(in) :: N_thermalization, N_measurements, N_skip
+    
+    integer(i4) :: i_beta
+    
+    allocate(E_p%array(N_measurements))
+    
+    call hot_start(U)
+
+    do i_beta = 1, size(beta)
+       call thermalization(U,L,beta(i_beta),N,d,algorithm,N_thermalization)
+       call measurements_sweeps(U,L,beta(i_beta),N,d,algorithm,N_measurements,N_skip,E_p%array)
+       !write(100,*) E_p%array(i_beta)
+       !print*, E_p%array
+    end do
+  end subroutine equilibrium_dynamics
+  
   subroutine thermalization(U,L,beta,N,d,algorithm,N_thermalization)
     type(link_variable), intent(inout), dimension(:,:,:,:) :: U
     integer(i4), intent(in)  :: L, N, d
@@ -88,7 +110,6 @@ contains
              do w = 1, L
                 do mu = 1, d - 1
                    do nu = mu + 1, d
-                      !print*, "Inside action. Inside loop", x, mu, nu
                       action = action + real(tr(plaquette(U,[x,y,z,w],mu,nu)),dp)
                    end do
                 end do
@@ -96,36 +117,8 @@ contains
           end do
        end do
     end do
-    !print*, "Inside action. outside loop"
     action =  - beta_N * action/number_of_planes
   end function action
-
-  !subroutine gauge_transformation(U)
-
-
-    !use periodic_boundary_contidions_mod, only : ip
-    !use parameters, only : L
-
-   ! type(link_variable), dimension(L), intent(inout) :: U
-  !  type(complex_2x2_matrix), dimension(L,L) :: V
-
- !   integer(i4) :: x, y
-
-!    do x = 1, L
-    !   do y = 1, L
-    !      call create_update(V(x,y))
-    !   end do
-    !end do
-
-   ! do x = 1, L
-   !    do y = 1, L
-    !      U(x,y)%link(1) = V(x,y)*U(x,y)%link(1)*dagger(V(ip(x),y))
-   !       U(x,y)%link(2) = V(x,y)*U(x,y)%link(2)*dagger(V(x,ip(y)))
-   !    end do
-   ! end do
-
-  !end subroutine gauge_transformation
-
 
  function plaquette(U,x,mu,nu)
    type(link_variable), dimension(:,:,:,:), intent(in) :: U
@@ -135,32 +128,11 @@ contains
     integer(i4), dimension(4) :: ipx_mu, ipx_nu
     L = size(U(:,1,1,1))
     !             x, mu           x + mu, nu                   x + nu, mu                    x, nu
-    !print*, "Inside plaquette"
+
     ipx_mu = ip_func(x,mu)
     ipx_nu = ip_func(x,nu)
     plaquette = U(x(1),x(2),x(3),x(4))%link(mu) * U(ipx_mu(1),ipx_mu(2),ipx_mu(3),ipx_mu(4))%link(nu) * &
          dagger(U(ipx_nu(1),ipx_nu(2),ipx_nu(3),ipx_nu(4))%link(mu)) * dagger(U(x(1),x(2),x(3),x(4))%link(nu))
   end function plaquette
-
-!  function DS2(U,x,mu,beta_N,d,Up)
-!    type(link_variable), dimension(:,:), intent(inout) :: U
-!    integer(i4), intent(in) :: x, mu, d
-!    rgiteal(dp), intent(in) :: beta_N
-    !type(complex_2x2_matrix), intent(out) :: Up
-   ! type(complex_2x2_matrix) :: Uold
-  !  real(dp) :: DS2, Sold, Snew
-
- !   call create_unbiased_update(Up)
-
-!    Uold = U(x)%link(mu)
-
-    !Sold = action(U,beta_N,d)
-    !U(x)%link(mu) = Up
-    !Snew = action(U,beta_N,d)
-    !U(x)%link(mu) = Uold
-
-   ! DS2 = Snew - Sold
-
-  !end function DS2
 
 end module dynamics
