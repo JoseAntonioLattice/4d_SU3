@@ -4,7 +4,6 @@ program main
   use parameters
   use arrays
   use dynamics
-  use statistics
   implicit none
 
   integer :: i
@@ -12,12 +11,10 @@ program main
   call read_input_parameters()
   allocate(U(L,L,L,L))
  
-  beta = [(i*0.1_dp, i = 1, 3)]
+  beta = [(i*0.1_dp, i = 1, 80)]
  
   call set_periodic_bounds(L)
   
-  open(unit = 100, file = 'data/Ep_'//trim(algorithm)//'.dat')
-
-  call equilibrium_dynamics(U,L,beta,3,4,algorithm,N_thermalization,N_measurements,N_skip)
+  call equilibrium_dynamics(U,L,beta,3,4,algorithm,N_thermalization,N_measurements,N_skip,equilibrium)
   
 end program main

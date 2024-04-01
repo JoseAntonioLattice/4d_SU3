@@ -6,7 +6,8 @@ module dynamics
   use local_update_algorithms
   use periodic_boundary_conditions_mod
   use get_index_mod
-
+  use create_files
+  
   implicit none
 
   !private !:: dp, i4, link_variable
@@ -14,14 +15,15 @@ module dynamics
 
 contains
 
-  subroutine equilibrium_dynamics(U,L,beta,N,d,algorithm,N_thermalization,N_measurements,N_skip)
+  subroutine equilibrium_dynamics(U,L,beta,N,d,algorithm,N_thermalization,N_measurements,N_skip,equilibrium)
     use starts
+    use statistics
     type(link_variable), intent(inout), dimension(:,:,:,:) :: U
     integer(i4), intent(in)  :: L, N, d
     real(dp), intent(in), dimension(:) :: beta
     character(*), intent(in) :: algorithm
     integer(i4), intent(in) :: N_thermalization, N_measurements, N_skip
-    
+    logical, intent(in) :: equilibrium
     integer(i4) :: i_beta
     
     allocate(E_p%array(N_measurements))
@@ -30,8 +32,11 @@ contains
 
     do i_beta = 1, size(beta)
        call thermalization(U,L,beta(i_beta),N,d,algorithm,N_thermalization)
+       call create_measurements_file(L,beta(i_beta),algorithm,equilibrium)
        call measurements_sweeps(U,L,beta(i_beta),N,d,algorithm,N_measurements,N_skip,E_p%array)
-       !write(100,*) E_p%array(i_beta)
+       
+       !call std_err(E_p%array,E_p%avr,E_p%err)
+       !write(100,*) beta(i_beta), E_p(i_temp)
        !print*, E_p%array
     end do
   end subroutine equilibrium_dynamics
@@ -64,8 +69,9 @@ contains
         call sweeps(U,L,beta,N,d,algorithm)
         if( mod(i,N_skip) == 0)then
            E_p(i/N_skip) = action(U,L,-1.0_dp/N)/(L**d)
+           write(100,*) E_p(i/N_skip)
         end if
-     end do
+     end do 
 
    end subroutine measurements_sweeps
 

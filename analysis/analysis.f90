@@ -1,7 +1,8 @@
 program analysis
 
   use iso_fortran_env, only : dp => real64, i4 => int32
-  
+  use statistics
+  use number2string_mod
   implicit none
 
   integer(i4) :: L
@@ -9,11 +10,12 @@ program analysis
   integer(i4) :: N_measurements
   integer(i4) :: N_skip
   character(25) :: algorithm
-
-  namelist /input_parameters/ L, N_thermalization, N_measurements, N_skip, algorithm
+  logical :: equilibrium
+  
+  namelist /input_parameters/ L, N_thermalization, N_measurements, N_skip, algorithm, equilibrium
 
   integer(i4) :: inunit
-  character(256) :: data_file = "action_metropolis.dat"
+  character(256) :: directory 
   
   type observable
      real(dp), allocatable :: array(:)
@@ -27,11 +29,11 @@ program analysis
   
   call read_input()
 
-  N_measurements = 100
 
   allocate(Ep%array(N_measurements))
   
-  data_file = "/home/estudiante/Documents/doctorado/SU3_gauge/data/"//trim(data_file)
+  data_file = "data/L="//trim(int2str(L))//"/"//trim(eq)//"/"//trim(algorithm)&
+       //"/beta="//trim(beta(i_beta))
   print*, trim(data_file)
   open( newunit = inunit, file = trim(data_file) )
 
