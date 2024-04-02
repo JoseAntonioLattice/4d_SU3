@@ -90,14 +90,14 @@ contains
 
     integer(i4) :: i, n, m
 
-      n = size(array)
+      n = 20!size(array)
 
       do i = 2, n
         m = mod(n,i)
         call jackknife(array(m+1:n),average,error,i)
         jackk_error_array(i) = error
         jackk_average_array(i) = average
-        print*, i, average, error, size(array(m+1:n))
+        !print*, i, average, error, size(array(m+1:n))
       end do
 
       bins = maxloc(jackk_error_array,dim = 1)
