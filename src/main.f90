@@ -11,7 +11,7 @@ program main
   call read_input_parameters()
   allocate(U(L,L,L,L))
  
-  beta = [(i*0.1_dp, i = 1, 80)]
+  beta = [5.6_dp,5.7_dp,5.8_dp] ![(i*0.1_dp, i = 1, 10)]
  
   call set_periodic_bounds(L)
   
