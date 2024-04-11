@@ -24,17 +24,21 @@ program analysis
   end type observable
 
   type(observable) :: Ep
-  complex(dp), allocatable, dimension(:) :: correlation_polyakov_loop
-  integer(i4) :: i, i_beta, bins
+  real(dp), allocatable, dimension(:,:) :: corr_poly
+  real(dp), allocatable, dimension(:) :: avr_corr_poly, err_corr_poly
+  complex(dp), allocatable, dimension(:,:) :: correlation_polyakov_loop
+  integer(i4) :: i,j, i_beta, bins1, bins2
   real(dp), allocatable, dimension(:) :: beta, auto_correlation
 
-  beta = [5.6_dp,5.7_dp,5.8_dp]![(i*0.1_dp,i=1,10)]
+  beta = [5.7_dp]![(i*0.1_dp,i=1,80)]
   
   call read_input()
 
+ 
 
-  allocate(Ep%array(N_measurements),auto_correlation(N_measurements))
-  allocate(correlation_polyakov_loop(0:L-1))
+  allocate(Ep%array(N_measurements),auto_correlation(N_measurements), corr_poly(N_measurements,L))
+  allocate(correlation_polyakov_loop(N_measurements,L))
+  allocate(avr_corr_poly(L), err_corr_poly(L))
   data = "data/L="//trim(int2str(L))//"_equilibrium_"//trim(algorithm)//".dat"
   open(unit = 666, file = trim(data), status = "unknown")
   do i_beta = 1,size(beta)
@@ -44,7 +48,8 @@ program analysis
      open( newunit = inunit, file = trim(data_file) )
      
      do i = 1, N_measurements
-        read(inunit,*) Ep%array(i), correlation_polyakov_loop
+        read(inunit,*) Ep%array(i), correlation_polyakov_loop(i,:)
+        corr_poly(i,:) = real(correlation_polyakov_loop(i,:))
      end do
      close(inunit)
      
@@ -55,8 +60,12 @@ program analysis
         write(69,*) auto_correlation(i)
      end do
      
-     call max_jackknife_error_2(Ep%array,Ep%avr,Ep%err,bins)
-     write(666,*) beta(i_beta),Ep%avr, Ep%err,bins, correlation_polyakov_loop/N_measurements
+     call max_jackknife_error_2(Ep%array,Ep%avr,Ep%err,bins1)
+     do j = 1,L
+        call max_jackknife_error_2(corr_poly(:,j),avr_corr_poly(j),err_corr_poly(j),bins2)
+     end do
+     write(666,*) beta(i_beta),Ep%avr, Ep%err,bins1,&!abs(avr_corr_poly)!, err_corr_poly, &
+          -log(abs(avr_corr_poly))/L!, abs(err_corr_poly/(avr_corr_poly*L)) 
   end do
 contains
 

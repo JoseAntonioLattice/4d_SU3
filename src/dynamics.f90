@@ -49,6 +49,7 @@ contains
 
     do i = 1, N_thermalization
        call sweeps(U,L,beta,N,d,algorithm)
+       !if(mod(i,10) == 0) call normalization(U,L)
     end do
    end subroutine thermalization
 
@@ -60,7 +61,7 @@ contains
      character(*), intent(in) :: algorithm
      integer(i4), intent(in) :: N_measurements, N_skip
      real(dp) :: E_p
-     complex(dp) :: correlation_polyakov_loop(0:L-1)
+     complex(dp) :: correlation_polyakov_loop(L)
      integer(i4) :: i
 
      do i = 1, N_measurements*N_skip
@@ -69,6 +70,7 @@ contains
            call take_measurements(U,L,E_p,correlation_polyakov_loop)
            write(100,*) E_p,correlation_polyakov_loop
         end if
+        !if(mod(i,10) == 0) call normalization(U,L)
      end do 
 
    end subroutine measurements_sweeps
@@ -103,18 +105,18 @@ contains
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
     integer(i4), intent(in) ::  L
     real(dp), intent(out) :: Ep
-    complex(dp) :: correlation_polyakov_loop(0:L-1)
-    complex(dp) :: poly_loop1
-    integer(i4) :: x,y,z,w,mu,nu
+    complex(dp) :: polyakov_loop_array(L,L,L), inv_polyakov_loop_array(L,L,L)
+    complex(dp), intent(out) :: correlation_polyakov_loop(L)
+    integer(i4) :: x,y,z,w,t,mu,nu, xp, yp, zp
     integer(i4), parameter :: d = 4, number_of_planes = d*(d-1)/2
     
     
     Ep = 0.0_dp
-    poly_loop1 = polyakov_loop(U,[1,1,1],L)
     do x = 1, L
-       correlation_polyakov_loop(x-1) = poly_loop1*conjg(polyakov_loop(U,[1,1,x],L))
        do y = 1, L
           do z = 1, L
+             polyakov_loop_array(x,y,z) = polyakov_loop(U,[x,y,z],L)
+             inv_polyakov_loop_array(x,y,z) = inv_polyakov_loop(U,[x,y,z],L)
              do w = 1, L
                 do mu = 1, d - 1
                    do nu = mu + 1, d
@@ -125,9 +127,29 @@ contains
           end do
        end do
     end do
-    !print*, correlation_polyakov_loop(0)
-    Ep =  Ep/(4*number_of_planes*L**4)
 
+    correlation_polyakov_loop = 0.0_dp
+
+    do t = 1, L
+       do x = 1, L
+          do y = 1, L
+             do z = 1, L
+                xp = mod(x+t,L); if(xp == 0) xp = L
+                yp = mod(y+t,L); if(yp == 0) yp = L
+                zp = mod(z+t,L); if(zp == 0) zp = L
+                correlation_polyakov_loop(t) = correlation_polyakov_loop(t) + polyakov_loop_array(x,y,z) * &
+                     ( inv_polyakov_loop_array(xp,y,z) + &
+                       inv_polyakov_loop_array(x,yp,z) + &
+                       inv_polyakov_loop_array(x,y,zp) ) 
+             end do
+          end do
+       end do
+       !correlation_polyakov_loop(t) = polyakov_loop_array(1,1,1)*inv_polyakov_loop_array(1,1,t)
+    end do
+    
+    correlation_polyakov_loop = correlation_polyakov_loop/(3*L**3)
+    Ep =  Ep/(3*number_of_planes*L**4)
+    print*, ep
   end subroutine take_measurements
 
   function polyakov_loop(U,x,L)
@@ -138,12 +160,8 @@ contains
     complex(dp) :: polyakov_loop
     integer(i4) :: t
 
-    product%matrix = 0.0_dp
-    product%matrix(1,1) = 1.0_dp
-    product%matrix(2,2) = 1.0_dp
-    product%matrix(3,3) = 1.0_dp
-
-    do t = 1, L
+    product = U(x(1),x(2),x(3),1)%link(4)
+    do t = 2, L
        product = product*U(x(1),x(2),x(3),t)%link(4)
     end do
 
@@ -151,6 +169,25 @@ contains
     
   end function polyakov_loop
 
+  
+  function inv_polyakov_loop(U,x,L)
+    type(link_variable), dimension(:,:,:,:), intent(in) :: U
+    integer(i4), dimension(3), intent(in) :: x 
+    integer(i4), intent(in) :: L
+    type(complex_3x3_matrix) :: product
+    complex(dp) :: inv_polyakov_loop
+    integer(i4) :: t
+
+    product = dagger(U(x(1),x(2),x(3),L)%link(4))
+    do t = L-1, 1, -1
+       product = product*dagger(U(x(1),x(2),x(3),t)%link(4))
+    end do
+
+    inv_polyakov_loop = tr(product)
+    
+  end function inv_polyakov_loop
+  
+  
   function action(U,L,beta_N)
 
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
@@ -177,8 +214,36 @@ contains
     action =  - beta_N * action/number_of_planes
   end function action
 
- function plaquette(U,x,mu,nu)
-   type(link_variable), dimension(:,:,:,:), intent(in) :: U
+  subroutine normalization(U,L)
+    type(link_variable), dimension(:,:,:,:), intent(inout) :: U
+    integer(i4), intent(in) :: L
+    integer(i4) :: x,y,z,w, mu
+    complex(dp), dimension(3) :: u_vec, v_vec
+    real(dp) :: norm
+    
+    do x = 1, L
+       do y = 1, L
+          do z = 1, L
+             do w = 1, L
+                do mu = 1, 4
+                   u_vec = U(x,y,z,w)%link(mu)%matrix(1,:)
+                   norm = sqrt( real( u_vec(1)*conjg(u_vec(1)) + u_vec(2)*conjg(u_vec(2)) + u_vec(3)*conjg(u_vec(3))) )
+                   u_vec = u_vec/norm 
+                   v_vec = U(x,y,z,w)%link(mu)%matrix(2,:)
+                   norm = sqrt( real( v_vec(1)*conjg(v_vec(1)) + v_vec(2)*conjg(v_vec(2)) + v_vec(3)*conjg(v_vec(3)) ) )
+                   v_vec = v_vec/norm
+                   U(x,y,z,w)%link(mu)%matrix(3,:) = cross_3d(conjg(u_vec),conjg(v_vec))
+                end do
+             end do
+          end do
+       end do
+    end do
+    
+    
+  end subroutine normalization
+
+  function plaquette(U,x,mu,nu)
+    type(link_variable), dimension(:,:,:,:), intent(in) :: U
     integer(i4), intent(in) :: x(4), mu, nu
     type(complex_3x3_matrix) :: plaquette
     integer(i4) :: L

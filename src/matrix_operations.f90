@@ -15,7 +15,7 @@ module matrix_operations
   end interface
 
   interface operator(*)
-    module procedure mat_mult2
+    module procedure mat_mult
   end interface
 
 
@@ -62,13 +62,13 @@ contains
 
     c%matrix(2,1) = a%matrix(2,1)*b%matrix(1,1) &
                   + a%matrix(2,2)*b%matrix(2,1) &
-                  + a%matrix(2,3)*cross_prod_b(1)
+                  + a%matrix(2,3)*b%matrix(3,1)!cross_prod_b(1)
     c%matrix(2,2) = a%matrix(2,1)*b%matrix(1,2) &
                   + a%matrix(2,2)*b%matrix(2,2) &
-                  + a%matrix(2,3)*cross_prod_b(2)
+                  + a%matrix(2,3)*b%matrix(3,2)
     c%matrix(2,3) = a%matrix(2,1)*b%matrix(1,3) &
                   + a%matrix(2,2)*b%matrix(2,3) &
-                  + a%matrix(2,3)*cross_prod_b(3)
+                  + a%matrix(2,3)*b%matrix(3,3)!cross_prod_b(3)
     
     c%matrix(3,:) = cross_3d(conjg(c%matrix(1,:)), conjg(c%matrix(2,:)) )
 

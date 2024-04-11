@@ -15,6 +15,7 @@ program main
   print*, A*dagger(A)
   print*, " "
   print*, A*B
+  print*, " "
   print*,matmul(A%matrix,B%matrix)
 
 contains
