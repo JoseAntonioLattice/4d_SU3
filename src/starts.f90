@@ -15,7 +15,7 @@ contains
     integer(i4) :: L,x,y,z,w,mu
 
     L = size(U(:,1,1,1))
-
+    
     do x = 1, L
        do y = 1, L
           do z = 1, L

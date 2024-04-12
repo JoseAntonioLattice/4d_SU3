@@ -26,7 +26,7 @@ program analysis
   type(observable) :: Ep
   real(dp), allocatable, dimension(:,:) :: corr_poly
   real(dp), allocatable, dimension(:) :: avr_corr_poly, err_corr_poly
-  complex(dp), allocatable, dimension(:,:) :: correlation_polyakov_loop
+  real(dp), allocatable, dimension(:,:) :: correlation_polyakov_loop
   integer(i4) :: i,j, i_beta, bins1, bins2
   real(dp), allocatable, dimension(:) :: beta, auto_correlation
 
@@ -36,9 +36,9 @@ program analysis
 
  
 
-  allocate(Ep%array(N_measurements),auto_correlation(N_measurements), corr_poly(N_measurements,L))
-  allocate(correlation_polyakov_loop(N_measurements,L))
-  allocate(avr_corr_poly(L), err_corr_poly(L))
+  allocate(Ep%array(N_measurements),auto_correlation(N_measurements), corr_poly(N_measurements,L/2-1))
+  allocate(correlation_polyakov_loop(N_measurements,L/2-1))
+  allocate(avr_corr_poly(L/2-1), err_corr_poly(L/2-1))
   data = "data/L="//trim(int2str(L))//"_equilibrium_"//trim(algorithm)//".dat"
   open(unit = 666, file = trim(data), status = "unknown")
   do i_beta = 1,size(beta)
@@ -49,7 +49,7 @@ program analysis
      
      do i = 1, N_measurements
         read(inunit,*) Ep%array(i), correlation_polyakov_loop(i,:)
-        corr_poly(i,:) = real(correlation_polyakov_loop(i,:))
+        corr_poly(i,:) = correlation_polyakov_loop(i,:)
      end do
      close(inunit)
      
@@ -61,8 +61,10 @@ program analysis
      end do
      
      call max_jackknife_error_2(Ep%array,Ep%avr,Ep%err,bins1)
-     do j = 1,L
+     do j = 1,L/2-1
         call max_jackknife_error_2(corr_poly(:,j),avr_corr_poly(j),err_corr_poly(j),bins2)
+        avr_corr_poly(j) = avr_corr_poly(j)/(3*L**3)
+        err_corr_poly(j) = err_corr_poly(j)/(3*L**3)
      end do
      write(666,*) beta(i_beta),Ep%avr, Ep%err,bins1,&!abs(avr_corr_poly)!, err_corr_poly, &
           -log(abs(avr_corr_poly))/L!, abs(err_corr_poly/(avr_corr_poly*L)) 

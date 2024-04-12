@@ -49,7 +49,7 @@ contains
 
     do i = 1, N_thermalization
        call sweeps(U,L,beta,N,d,algorithm)
-       !if(mod(i,10) == 0) call normalization(U,L)
+       !if(mod(i,20) == 0) call normalization(U,L)
     end do
    end subroutine thermalization
 
@@ -61,7 +61,7 @@ contains
      character(*), intent(in) :: algorithm
      integer(i4), intent(in) :: N_measurements, N_skip
      real(dp) :: E_p
-     complex(dp) :: correlation_polyakov_loop(L)
+     real(dp) :: correlation_polyakov_loop(L/2-1)
      integer(i4) :: i
 
      do i = 1, N_measurements*N_skip
@@ -70,7 +70,7 @@ contains
            call take_measurements(U,L,E_p,correlation_polyakov_loop)
            write(100,*) E_p,correlation_polyakov_loop
         end if
-        !if(mod(i,10) == 0) call normalization(U,L)
+        !if(mod(i,20) == 0) call normalization(U,L)
      end do 
 
    end subroutine measurements_sweeps
@@ -106,7 +106,7 @@ contains
     integer(i4), intent(in) ::  L
     real(dp), intent(out) :: Ep
     complex(dp) :: polyakov_loop_array(L,L,L), inv_polyakov_loop_array(L,L,L)
-    complex(dp), intent(out) :: correlation_polyakov_loop(L)
+    real(dp), intent(out) :: correlation_polyakov_loop(L/2-1)
     integer(i4) :: x,y,z,w,t,mu,nu, xp, yp, zp
     integer(i4), parameter :: d = 4, number_of_planes = d*(d-1)/2
     
@@ -130,24 +130,31 @@ contains
 
     correlation_polyakov_loop = 0.0_dp
 
-    do t = 1, L
+    do t = 1, L/2 - 1
        do x = 1, L
+          !xm = mod(L+mod(x-t,L),L); if(xm == 0) xm = L
+          xp = mod(x+t,L); if(xp == 0) xp = L
           do y = 1, L
+             yp = mod(y+t,L); if(yp == 0) yp = L
+             !ym = mod(L+mod(y-t,L),L); if(ym == 0) ym = L
              do z = 1, L
-                xp = mod(x+t,L); if(xp == 0) xp = L
-                yp = mod(y+t,L); if(yp == 0) yp = L
                 zp = mod(z+t,L); if(zp == 0) zp = L
-                correlation_polyakov_loop(t) = correlation_polyakov_loop(t) + polyakov_loop_array(x,y,z) * &
-                     ( inv_polyakov_loop_array(xp,y,z) + &
-                       inv_polyakov_loop_array(x,yp,z) + &
-                       inv_polyakov_loop_array(x,y,zp) ) 
+                !zm = mod(L+mod(z-t,L),L); if(zm == 0) zm = L
+                
+                correlation_polyakov_loop(t) = correlation_polyakov_loop(t) + &
+                real(polyakov_loop_array(x,y,z) * ( inv_polyakov_loop_array(xp,y,z) + &
+                                                    inv_polyakov_loop_array(x,yp,z) + &
+                                                    inv_polyakov_loop_array(x,y,zp)))! + &
+                                                         !polyakov_loop_array(xm,y,z) + &
+                                                         !polyakov_loop_array(x,ym,z) + &
+                                                         !polyakov_loop_array(x,y,zm) ) )   
+                      
              end do
           end do
        end do
-       !correlation_polyakov_loop(t) = polyakov_loop_array(1,1,1)*inv_polyakov_loop_array(1,1,t)
     end do
     
-    correlation_polyakov_loop = correlation_polyakov_loop/(3*L**3)
+    !correlation_polyakov_loop = correlation_polyakov_loop/(3*L**3)
     Ep =  Ep/(3*number_of_planes*L**4)
     print*, ep
   end subroutine take_measurements
@@ -227,11 +234,15 @@ contains
              do w = 1, L
                 do mu = 1, 4
                    u_vec = U(x,y,z,w)%link(mu)%matrix(1,:)
-                   norm = sqrt( real( u_vec(1)*conjg(u_vec(1)) + u_vec(2)*conjg(u_vec(2)) + u_vec(3)*conjg(u_vec(3))) )
-                   u_vec = u_vec/norm 
+                   norm = sqrt( (u_vec(1)%re)**2 + (u_vec(2)%re)**2 + (u_vec(3)%re)**2 +  &
+                                (u_vec(1)%im)**2 + (u_vec(2)%im)**2 + (u_vec(3)%im)**2)
+                   u_vec = u_vec/norm
+                   U(x,y,z,w)%link(mu)%matrix(1,:) = u_vec
                    v_vec = U(x,y,z,w)%link(mu)%matrix(2,:)
-                   norm = sqrt( real( v_vec(1)*conjg(v_vec(1)) + v_vec(2)*conjg(v_vec(2)) + v_vec(3)*conjg(v_vec(3)) ) )
+                   norm = sqrt( (v_vec(1)%re)**2 + (v_vec(2)%re)**2 + (v_vec(3)%re)**2 +  &
+                                (v_vec(1)%im)**2 + (v_vec(2)%im)**2 + (v_vec(3)%im)**2)
                    v_vec = v_vec/norm
+                   U(x,y,z,w)%link(mu)%matrix(2,:) = v_vec
                    U(x,y,z,w)%link(mu)%matrix(3,:) = cross_3d(conjg(u_vec),conjg(v_vec))
                 end do
              end do
