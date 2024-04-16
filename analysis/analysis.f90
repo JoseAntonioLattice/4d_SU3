@@ -5,14 +5,14 @@ program analysis
   use number2string_mod
   implicit none
 
-  integer(i4) :: L
+  integer(i4) :: Lx, Lt
   integer(i4) :: N_thermalization
   integer(i4) :: N_measurements
   integer(i4) :: N_skip
   character(25) :: algorithm
   logical :: equilibrium
   
-  namelist /input_parameters/ L, N_thermalization, N_measurements, N_skip, algorithm, equilibrium
+  namelist /input_parameters/ Lx,Lt, N_thermalization, N_measurements, N_skip, algorithm, equilibrium
 
   integer(i4) :: inunit
   character(256) :: data_file, data 
@@ -29,31 +29,32 @@ program analysis
   real(dp), allocatable, dimension(:,:) :: correlation_polyakov_loop
   integer(i4) :: i,j, i_beta, bins1, bins2
   real(dp), allocatable, dimension(:) :: beta, auto_correlation
-
+  real(dp), dimension(2) :: poly
   beta = [5.7_dp]![(i*0.1_dp,i=1,80)]
   
   call read_input()
 
  
 
-  allocate(Ep%array(N_measurements),auto_correlation(N_measurements), corr_poly(N_measurements,L/2-1))
-  allocate(correlation_polyakov_loop(N_measurements,L/2-1))
-  allocate(avr_corr_poly(L/2-1), err_corr_poly(L/2-1))
-  data = "data/L="//trim(int2str(L))//"_equilibrium_"//trim(algorithm)//".dat"
+  allocate(Ep%array(N_measurements),auto_correlation(N_measurements), corr_poly(N_measurements,Lx/2-1))
+  allocate(correlation_polyakov_loop(N_measurements,Lx/2-1))
+  allocate(avr_corr_poly(Lx/2-1), err_corr_poly(Lx/2-1))
+  data = "data/Lx="//trim(int2str(Lx))//"_Lt="//trim(int2str(Lt))//"_equilibrium_"//trim(algorithm)//".dat"
   open(unit = 666, file = trim(data), status = "unknown")
+  open(unit = 777, file = 'data_Lx='//trim(int2str(Lx))//"_Lt="//trim(int2str(Lt))//'_correlation_polyakovloop', status = "unknown")
   do i_beta = 1,size(beta)
-     data_file = "data/L="//trim(int2str(L))//"/"//"equilibrium"//"/"//trim(algorithm)&
+     data_file = "data/Lx="//trim(int2str(Lx))//"/Lt="//trim(int2str(Lt))//"/"//"equilibrium"//"/"//trim(algorithm)&
           //"/beta="//real2str(beta(i_beta))//"/observables.dat"
      !print*, trim(data_file)
      open( newunit = inunit, file = trim(data_file) )
      
      do i = 1, N_measurements
-        read(inunit,*) Ep%array(i), correlation_polyakov_loop(i,:)
+        read(inunit,*) Ep%array(i),poly(1),poly(2), correlation_polyakov_loop(i,:)
         corr_poly(i,:) = correlation_polyakov_loop(i,:)
      end do
      close(inunit)
      
-     open(unit = 69, file = "data/L="//trim(int2str(L))//"/"//"equilibrium"//"/"//trim(algorithm)&
+     open(unit = 69, file = "data/Lx="//trim(int2str(Lx))//"/Lt="//trim(int2str(Lt))//"/"//"equilibrium"//"/"//trim(algorithm)&
           //"/beta="//real2str(beta(i_beta))//"/auto_correlation.dat")
      auto_correlation = acf(Ep%array,N_measurements)
      do i = 1, size(Ep%array)
@@ -61,13 +62,15 @@ program analysis
      end do
      
      call max_jackknife_error_2(Ep%array,Ep%avr,Ep%err,bins1)
-     do j = 1,L/2-1
+     do j = 1,Lx/2-1
         call max_jackknife_error_2(corr_poly(:,j),avr_corr_poly(j),err_corr_poly(j),bins2)
-        avr_corr_poly(j) = avr_corr_poly(j)/(3*L**3)
-        err_corr_poly(j) = err_corr_poly(j)/(3*L**3)
+        avr_corr_poly(j) = avr_corr_poly(j)/(3*Lx**3)
+        err_corr_poly(j) = err_corr_poly(j)/(3*Lx**3)
      end do
-     write(666,*) beta(i_beta),Ep%avr, Ep%err,bins1,&!abs(avr_corr_poly)!, err_corr_poly, &
-          -log(abs(avr_corr_poly))/L!, abs(err_corr_poly/(avr_corr_poly*L)) 
+     write(666,*) beta(i_beta),Ep%avr, Ep%err,bins1!&!abs(avr_corr_poly)!, err_corr_poly, &
+     do j = 1, Lx/2 -1
+        write(777,*) -log(abs(avr_corr_poly(j)))/Lt, abs(err_corr_poly(j)/(avr_corr_poly(j)*Lx))
+     end do
   end do
 contains
 

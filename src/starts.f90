@@ -12,14 +12,14 @@ contains
   subroutine cold_start(U)
     use data_types_observables, only : link_variable
     type(link_variable), intent(out), dimension(:,:,:,:) :: U
-    integer(i4) :: L,x,y,z,w,mu
+    integer(i4) :: Lx,Lt,x,y,z,w,mu
 
-    L = size(U(:,1,1,1))
-    
-    do x = 1, L
-       do y = 1, L
-          do z = 1, L
-             do w = 1, L
+    Lx = size(U(:,1,1,1))
+    Lt = size(U(1,1,1,:)) 
+    do x = 1, Lx
+       do y = 1, Lx
+          do z = 1, Lx
+             do w = 1, Lt
                 do mu = 1, 4
                    U(x,y,z,w)%link(mu)%matrix = reshape([1.0_dp,0.0_dp,0.0_dp, 0.0_dp,1.0_dp,0.0_dp, 0.0_dp,0.0_dp,1.0_dp], [3,3])
                 end do
@@ -33,16 +33,16 @@ contains
   subroutine hot_start(U)
     use data_types_observables, only : link_variable
     type(link_variable), intent(out), dimension(:,:,:,:) :: U
-    integer(i4) :: x,y,z,w,mu, L
+    integer(i4) :: x,y,z,w,mu, Lx,Lt
     real(dp), dimension(6) :: r1, r2
     complex(dp), dimension(3) :: uu, vv
 
-    L = size(U(:,1,1,1))
-
-    do x = 1, L
-       do y = 1, L
-          do z = 1, L
-             do w = 1, L
+    Lx = size(U(:,1,1,1))
+    Lt = size(U(1,1,1,:))
+    do x = 1, Lx
+       do y = 1, Lx
+          do z = 1, Lx
+             do w = 1, Lt
                 do mu = 1, 4
                    call random_number(r1); call random_number(r2)
                    r1 = r1 - 0.5_dp ; r2 = r2 - 0.5_dp;

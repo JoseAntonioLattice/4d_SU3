@@ -15,11 +15,11 @@ module dynamics
 
 contains
 
-  subroutine equilibrium_dynamics(U,L,beta,N,d,algorithm,N_thermalization,N_measurements,N_skip,equilibrium)
+  subroutine equilibrium_dynamics(U,Lx,Lt,beta,N,d,algorithm,N_thermalization,N_measurements,N_skip,equilibrium)
     use starts
     use statistics
     type(link_variable), intent(inout), dimension(:,:,:,:) :: U
-    integer(i4), intent(in)  :: L, N, d
+    integer(i4), intent(in)  :: Lx,Lt, N, d
     real(dp), intent(in), dimension(:) :: beta
     character(*), intent(in) :: algorithm
     integer(i4), intent(in) :: N_thermalization, N_measurements, N_skip
@@ -28,19 +28,19 @@ contains
     
     !allocate(E_p%array(N_measurements))
     
-    call hot_start(U)
+    call cold_start(U)
 
     do i_beta = 1, size(beta)
-       call thermalization(U,L,beta(i_beta),N,d,algorithm,N_thermalization)
-       call create_measurements_file(L,beta(i_beta),algorithm,equilibrium)
-       call measurements_sweeps(U,L,beta(i_beta),N,d,algorithm,N_measurements,N_skip)
+       call thermalization(U,Lx,Lt,beta(i_beta),N,d,algorithm,N_thermalization)
+       call create_measurements_file(Lx,Lt,beta(i_beta),algorithm,equilibrium)
+       call measurements_sweeps(U,Lx,Lt,beta(i_beta),N,d,algorithm,N_measurements,N_skip)
        
     end do
   end subroutine equilibrium_dynamics
   
-  subroutine thermalization(U,L,beta,N,d,algorithm,N_thermalization)
+  subroutine thermalization(U,Lx,Lt,beta,N,d,algorithm,N_thermalization)
     type(link_variable), intent(inout), dimension(:,:,:,:) :: U
-    integer(i4), intent(in)  :: L, N, d
+    integer(i4), intent(in)  :: Lx,Lt, N, d
     real(dp), intent(in) :: beta
     character(*), intent(in) :: algorithm
     integer(i4), intent(in) :: N_thermalization
@@ -48,46 +48,47 @@ contains
     integer(i4) :: i
 
     do i = 1, N_thermalization
-       call sweeps(U,L,beta,N,d,algorithm)
-       !if(mod(i,20) == 0) call normalization(U,L)
+       call sweeps(U,Lx,Lt,beta,N,d,algorithm)
+       !if(mod(i,10) == 0) call normalization(U,L)
     end do
    end subroutine thermalization
 
 
-   subroutine measurements_sweeps(U,L,beta,N,d,algorithm,N_measurements,N_skip)
+   subroutine measurements_sweeps(U,Lx,Lt,beta,N,d,algorithm,N_measurements,N_skip)
      type(link_variable), intent(inout), dimension(:,:,:,:) :: U
-     integer(i4), intent(in)  :: L, N, d
+     integer(i4), intent(in)  :: Lx,Lt, N, d
      real(dp), intent(in) :: beta
      character(*), intent(in) :: algorithm
      integer(i4), intent(in) :: N_measurements, N_skip
      real(dp) :: E_p
-     real(dp) :: correlation_polyakov_loop(L/2-1)
+     complex(dp) :: avr_polyakov_loop
+     real(dp) :: correlation_polyakov_loop(Lx/2-1)
      integer(i4) :: i
 
      do i = 1, N_measurements*N_skip
-        call sweeps(U,L,beta,N,d,algorithm)
+        call sweeps(U,Lx,Lt,beta,N,d,algorithm)
         if( mod(i,N_skip) == 0)then
-           call take_measurements(U,L,E_p,correlation_polyakov_loop)
-           write(100,*) E_p,correlation_polyakov_loop
+           call take_measurements(U,Lx,Lt,E_p,avr_polyakov_loop,correlation_polyakov_loop)
+           write(100,*) E_p,avr_polyakov_loop%re, avr_polyakov_loop%im,correlation_polyakov_loop 
         end if
-        !if(mod(i,20) == 0) call normalization(U,L)
+        !if(mod(i,10) == 0) call normalization(U,L)
      end do 
 
    end subroutine measurements_sweeps
 
-  subroutine sweeps(U,L,beta,N,d,algorithm)
+  subroutine sweeps(U,Lx,Lt,beta,N,d,algorithm)
     type(link_variable), intent(inout), dimension(:,:,:,:) :: U
-    integer(i4), intent(in)  :: L, N, d
+    integer(i4), intent(in)  :: Lx,Lt, N, d
     real(dp), intent(in) :: beta
     character(*), intent(in) :: algorithm
     type(complex_3x3_matrix) :: Up
     integer(i4) :: x, y,z,w, mu
     real(dp) :: Delta_S
 
-    do x = 1, L
-       do y = 1, L
-          do z = 1, L
-             do w = 1, L
+    do x = 1, Lx
+       do y = 1, Lx
+          do z = 1, Lx
+             do w = 1, Lt
                 do mu = 1, d
                    !Delta_S = DS(U,mu,Up,[x,y,z,w],beta,N)
                    !call metropolis(Delta_S,U(x,y,z,w)%link(mu)%matrix,Up%matrix)
@@ -101,23 +102,23 @@ contains
   end subroutine sweeps
 
 
-  subroutine take_measurements(U,L,Ep,correlation_polyakov_loop)
+  subroutine take_measurements(U,Lx,Lt,Ep,avr_polyakov_loop,correlation_polyakov_loop)
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
-    integer(i4), intent(in) ::  L
+    integer(i4), intent(in) ::  Lx,Lt
     real(dp), intent(out) :: Ep
-    complex(dp) :: polyakov_loop_array(L,L,L), inv_polyakov_loop_array(L,L,L)
-    real(dp), intent(out) :: correlation_polyakov_loop(L/2-1)
+    complex(dp) :: polyakov_loop_array(Lx,Lx,Lx)
+    complex(dp), intent(out) :: avr_polyakov_loop
+    real(dp):: correlation_polyakov_loop(Lx/2-1)
     integer(i4) :: x,y,z,w,t,mu,nu, xp, yp, zp
     integer(i4), parameter :: d = 4, number_of_planes = d*(d-1)/2
     
     
     Ep = 0.0_dp
-    do x = 1, L
-       do y = 1, L
-          do z = 1, L
-             polyakov_loop_array(x,y,z) = polyakov_loop(U,[x,y,z],L)
-             inv_polyakov_loop_array(x,y,z) = inv_polyakov_loop(U,[x,y,z],L)
-             do w = 1, L
+    do x = 1, Lx
+       do y = 1, Lx
+          do z = 1, Lx
+             polyakov_loop_array(x,y,z) = polyakov_loop(U,[x,y,z],Lt)
+             do w = 1, Lt
                 do mu = 1, d - 1
                    do nu = mu + 1, d
                       Ep = Ep + real(tr(plaquette(U,[x,y,z,w],mu,nu)),dp)
@@ -128,35 +129,28 @@ contains
        end do
     end do
 
+    avr_polyakov_loop = sum(polyakov_loop_array)/Lx**3 
     correlation_polyakov_loop = 0.0_dp
 
-    do t = 1, L/2 - 1
-       do x = 1, L
-          !xm = mod(L+mod(x-t,L),L); if(xm == 0) xm = L
-          xp = mod(x+t,L); if(xp == 0) xp = L
-          do y = 1, L
-             yp = mod(y+t,L); if(yp == 0) yp = L
-             !ym = mod(L+mod(y-t,L),L); if(ym == 0) ym = L
-             do z = 1, L
-                zp = mod(z+t,L); if(zp == 0) zp = L
-                !zm = mod(L+mod(z-t,L),L); if(zm == 0) zm = L
-                
+    do t = 1, Lx/2 - 1
+       do x = 1, Lx
+          xp = mod(x+t,Lx); if(xp == 0) xp = Lx
+          do y = 1, Lx
+             yp = mod(y+t,Lx); if(yp == 0) yp = Lx
+             do z = 1, Lx
+                zp = mod(z+t,Lx); if(zp == 0) zp = Lx
+                                
                 correlation_polyakov_loop(t) = correlation_polyakov_loop(t) + &
-                real(polyakov_loop_array(x,y,z) * ( inv_polyakov_loop_array(xp,y,z) + &
-                                                    inv_polyakov_loop_array(x,yp,z) + &
-                                                    inv_polyakov_loop_array(x,y,zp)))! + &
-                                                         !polyakov_loop_array(xm,y,z) + &
-                                                         !polyakov_loop_array(x,ym,z) + &
-                                                         !polyakov_loop_array(x,y,zm) ) )   
-                      
+                     real(polyakov_loop_array(x,y,z) * conjg( polyakov_loop_array(xp,y,z) + &
+                     polyakov_loop_array(x,yp,z) + &
+                     polyakov_loop_array(x,y,zp)))
              end do
           end do
        end do
     end do
     
-    !correlation_polyakov_loop = correlation_polyakov_loop/(3*L**3)
-    Ep =  Ep/(3*number_of_planes*L**4)
-    print*, ep
+    Ep =  Ep/(3*number_of_planes*Lx**3*Lt)
+    !print*, ep!, inv_polyakov_loop_array(1,1,1), conjg(polyakov_loop_array(1,1,1))
   end subroutine take_measurements
 
   function polyakov_loop(U,x,L)
@@ -195,20 +189,20 @@ contains
   end function inv_polyakov_loop
   
   
-  function action(U,L,beta_N)
+  function action(U,Lx,Lt,beta_N)
 
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
-    integer(i4), intent(in) ::  L
+    integer(i4), intent(in) ::  Lx,Lt
     real(dp) :: action, beta_N
     integer(i4) :: x,y,z,w,mu,nu
     integer(i4), parameter :: d = 4, number_of_planes = d*(d-1)/2
     
     
     action = 0.0_dp
-    do x = 1, L
-       do y = 1, L
-          do z = 1, L
-             do w = 1, L
+    do x = 1, Lx
+       do y = 1, Lx
+          do z = 1, Lx
+             do w = 1, Lt
                 do mu = 1, d - 1
                    do nu = mu + 1, d
                       action = action + real(tr(plaquette(U,[x,y,z,w],mu,nu)),dp)
@@ -221,17 +215,17 @@ contains
     action =  - beta_N * action/number_of_planes
   end function action
 
-  subroutine normalization(U,L)
+  subroutine normalization(U,Lx,Lt)
     type(link_variable), dimension(:,:,:,:), intent(inout) :: U
-    integer(i4), intent(in) :: L
+    integer(i4), intent(in) :: Lx,Lt
     integer(i4) :: x,y,z,w, mu
     complex(dp), dimension(3) :: u_vec, v_vec
     real(dp) :: norm
     
-    do x = 1, L
-       do y = 1, L
-          do z = 1, L
-             do w = 1, L
+    do x = 1, Lx
+       do y = 1, Lx
+          do z = 1, Lx
+             do w = 1, Lt
                 do mu = 1, 4
                    u_vec = U(x,y,z,w)%link(mu)%matrix(1,:)
                    norm = sqrt( (u_vec(1)%re)**2 + (u_vec(2)%re)**2 + (u_vec(3)%re)**2 +  &
@@ -257,9 +251,8 @@ contains
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
     integer(i4), intent(in) :: x(4), mu, nu
     type(complex_3x3_matrix) :: plaquette
-    integer(i4) :: L
     integer(i4), dimension(4) :: ipx_mu, ipx_nu
-    L = size(U(:,1,1,1))
+    
     !             x, mu           x + mu, nu                   x + nu, mu                    x, nu
 
     ipx_mu = ip_func(x,mu)

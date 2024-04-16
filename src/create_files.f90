@@ -5,8 +5,8 @@ module create_files
 
 contains
 
-  subroutine create_measurements_file(L,beta,algorithm,equilibrium)
-    integer, intent(in) :: L
+  subroutine create_measurements_file(Lx,Lt,beta,algorithm,equilibrium)
+    integer, intent(in) :: Lx,Lt
     real(8), intent(in) :: beta
     character(*), intent(in) :: algorithm
     logical :: equilibrium
@@ -23,9 +23,13 @@ contains
     directory = "data"
     call check_directory(trim(directory))
     
-    directory = trim(directory)//"/L="//trim(int2str(L))
+    directory = trim(directory)//"/Lx="//trim(int2str(Lx))
     call check_directory(trim(directory))
 
+    
+    directory = trim(directory)//"/Lt="//trim(int2str(Lt))
+    call check_directory(trim(directory))
+    
     directory = trim(directory)//"/"//trim(eq)
     call check_directory(trim(directory))
 

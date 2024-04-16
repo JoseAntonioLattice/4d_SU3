@@ -9,12 +9,12 @@ program main
   integer :: i
   
   call read_input_parameters()
-  allocate(U(L,L,L,L))
+  allocate(U(Lx,Lx,Lx,Lt))
  
   beta = [5.7_dp]![(i*0.1_dp, i = 1, 80)]
  
-  call set_periodic_bounds(L)
+  call set_periodic_bounds(Lx,Lt)
   
-  call equilibrium_dynamics(U,L,beta,3,4,algorithm,N_thermalization,N_measurements,N_skip,equilibrium)
+  call equilibrium_dynamics(U,Lx,Lt,beta,3,4,algorithm,N_thermalization,N_measurements,N_skip,equilibrium)
   
 end program main

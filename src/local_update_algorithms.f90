@@ -180,15 +180,16 @@ contains
   
   function random_vector() result(y)
     real(dp), parameter :: pi = acos(-1.0_dp)
-    real(dp) :: theta, phi
     real(dp), dimension(3) :: y
+    real(dp) :: r, n
 
-    theta = random_uniform(0.0_dp, pi)
-    phi   = random_uniform(0.0_dp, 2*pi)
+    call random_number(r)
 
-    y(1) = cos(phi) * sin(theta)
-    y(2) = sin(phi) * sin(theta)
-    y(3) = cos(theta)
+    
+    y(1) = random_uniform(-1.0_dp, 1.0_dp)
+    n = sqrt(1.0_dp - (y(1))**2)
+    y(2) = n * cos(2*pi*r)
+    y(3) = n * sin(2*pi*r)
 
   end function random_vector
 
