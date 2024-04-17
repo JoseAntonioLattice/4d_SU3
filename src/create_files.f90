@@ -9,10 +9,10 @@ contains
     integer, intent(in) :: Lx,Lt
     real(8), intent(in) :: beta
     character(*), intent(in) :: algorithm
-    logical :: equilibrium
-    integer :: outunit
+    logical :: equilibrium, file_exists, condition
+    integer :: outunit, i
 
-    character(100) :: directory, eq
+    character(100) :: directory, eq, data_file
 
     if(equilibrium .eqv. .true.) then
        eq = "equilibrium"
@@ -25,7 +25,6 @@ contains
     
     directory = trim(directory)//"/Lx="//trim(int2str(Lx))
     call check_directory(trim(directory))
-
     
     directory = trim(directory)//"/Lt="//trim(int2str(Lt))
     call check_directory(trim(directory))
@@ -39,8 +38,17 @@ contains
     directory = trim(directory)//"/beta="//real2str(beta)
     call check_directory(trim(directory))
 
-    
-    open(unit = 100, file = trim(directory)//'/observables.dat')
+    directory = trim(directory)//"/observables_"
+
+    i = 1
+    do 
+       data_file = trim(directory)//trim(int2str(i))//".dat"
+       call check_file(trim(data_file), file_exists)
+       condition = file_exists
+       if (condition .eqv. .false.) exit
+       i = i + 1
+    end do
+    open(unit = 100, file = data_file)
     
   end subroutine create_measurements_file
 

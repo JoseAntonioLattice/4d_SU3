@@ -34,17 +34,18 @@ program analysis
   
   call read_input()
 
- 
+  N_measurements = 800
 
   allocate(Ep%array(N_measurements),auto_correlation(N_measurements), corr_poly(N_measurements,Lx/2-1))
   allocate(correlation_polyakov_loop(N_measurements,Lx/2-1))
   allocate(avr_corr_poly(Lx/2-1), err_corr_poly(Lx/2-1))
   data = "data/Lx="//trim(int2str(Lx))//"_Lt="//trim(int2str(Lt))//"_equilibrium_"//trim(algorithm)//".dat"
   open(unit = 666, file = trim(data), status = "unknown")
-  open(unit = 777, file = 'data_Lx='//trim(int2str(Lx))//"_Lt="//trim(int2str(Lt))//'_correlation_polyakovloop', status = "unknown")
+  open(unit = 777, file = 'data_Lx='//trim(int2str(Lx))//"_Lt="//trim(int2str(Lt))//'_correlation_polyakovloop.dat' &
+       , status = "unknown")
   do i_beta = 1,size(beta)
      data_file = "data/Lx="//trim(int2str(Lx))//"/Lt="//trim(int2str(Lt))//"/"//"equilibrium"//"/"//trim(algorithm)&
-          //"/beta="//real2str(beta(i_beta))//"/observables.dat"
+          //"/beta="//real2str(beta(i_beta))//"/observables_7.dat"
      !print*, trim(data_file)
      open( newunit = inunit, file = trim(data_file) )
      
@@ -69,9 +70,11 @@ program analysis
      end do
      write(666,*) beta(i_beta),Ep%avr, Ep%err,bins1!&!abs(avr_corr_poly)!, err_corr_poly, &
      do j = 1, Lx/2 -1
-        write(777,*) -log(abs(avr_corr_poly(j)))/Lt, abs(err_corr_poly(j)/(avr_corr_poly(j)*Lx))
+        write(777,*) -log(abs(avr_corr_poly(j)))/Lt, abs(err_corr_poly(j)/(avr_corr_poly(j)*Lt))
      end do
   end do
+  close(666)
+  close(777)
 contains
 
   function acf(x,n)

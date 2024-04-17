@@ -49,7 +49,7 @@ contains
 
     do i = 1, N_thermalization
        call sweeps(U,Lx,Lt,beta,N,d,algorithm)
-       !if(mod(i,10) == 0) call normalization(U,L)
+       if(mod(i,10) == 0) call normalization(U,L)
     end do
    end subroutine thermalization
 
@@ -71,7 +71,7 @@ contains
            call take_measurements(U,Lx,Lt,E_p,avr_polyakov_loop,correlation_polyakov_loop)
            write(100,*) E_p,avr_polyakov_loop%re, avr_polyakov_loop%im,correlation_polyakov_loop 
         end if
-        !if(mod(i,10) == 0) call normalization(U,L)
+        if(mod(i,10) == 0) call normalization(U,L)
      end do 
 
    end subroutine measurements_sweeps

@@ -18,14 +18,16 @@ module check_files_directories_mod
 
     end subroutine check_directory
 
-    subroutine check_file(filepath)
+    subroutine check_file(filepath,file_exists)
 
         character(*), intent(in) :: filepath
-        logical :: file_exists
+        logical, intent(out) :: file_exists
 
         inquire(file = filepath, exist = file_exists)
-        if(file_exists .eqv. .false.) call execute_command_line('touch '//filepath)
-
+        if(file_exists .eqv. .false.)then
+           call execute_command_line('touch '//filepath)
+           !file_exists = .true.
+        end if
     end subroutine check_file
 
 
