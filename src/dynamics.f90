@@ -7,6 +7,9 @@ module dynamics
   use periodic_boundary_conditions_mod
   use get_index_mod
   use create_files
+
+
+  integer(i4), dimension(4,4,4,4) :: levi_civita
   
   implicit none
 
@@ -14,6 +17,40 @@ module dynamics
   !public :: sweeps, create_update, sgn, drand, take_measurements, dagger, tr, gauge_transformation, DS
 
 contains
+
+  subroutine set_levi_civita()
+
+    levi_civita = 0
+    
+    levi_civita(1,2,3,4) = 1
+    levi_civita(1,3,4,2) = 1
+    levi_civita(1,4,2,3) = 1
+    levi_civita(2,1,4,3) = 1
+    levi_civita(2,3,1,4) = 1
+    levi_civita(2,4,3,1) = 1
+    levi_civita(3,1,2,4) = 1
+    levi_civita(3,2,4,1) = 1
+    levi_civita(3,4,1,2) = 1
+    levi_civita(4,1,3,2) = 1
+    levi_civita(4,2,1,3) = 1
+    levi_civita(4,3,2,1) = 1
+
+    levi_civita(1,2,4,3) = -1
+    levi_civita(1,3,2,4) = -1
+    levi_civita(1,4,3,2) = -1
+    levi_civita(2,1,3,4) = -1
+    levi_civita(2,3,4,1) = -1
+    levi_civita(2,4,1,3) = -1
+    levi_civita(3,1,4,2) = -1
+    levi_civita(3,2,1,4) = -1
+    levi_civita(3,4,2,1) = -1
+    levi_civita(4,1,2,3) = -1
+    levi_civita(4,2,3,1) = -1
+    levi_civita(4,3,1,2) = -1
+
+    
+  end subroutine set_levi_civita
+  
 
   subroutine equilibrium_dynamics(U,Lx,Lt,beta,N,d,algorithm,N_thermalization,N_measurements,N_skip,equilibrium)
     use starts
@@ -27,7 +64,8 @@ contains
     integer(i4) :: i_beta
     
     !allocate(E_p%array(N_measurements))
-    
+
+    call set_levi_civita
     call cold_start(U)
 
     do i_beta = 1, size(beta)
@@ -261,4 +299,55 @@ contains
          dagger(U(ipx_nu(1),ipx_nu(2),ipx_nu(3),ipx_nu(4))%link(mu)) * dagger(U(x(1),x(2),x(3),x(4))%link(nu))
   end function plaquette
 
+
+  function F(U,x,mu,nu)
+    type(link_variable), dimension(:,:,:,:), intent(in) :: U
+    integer(i4), intent(in) :: x(4), mu, nu
+    type(complex_3x3_matrix) :: F,Q
+    integer(i4), dimension(4) :: ipx_mu, ipx_nu,imx_mu, imx_nu, &
+         x_im_mu_ip_nu, x_im_mu_im_nu,  x_ip_mu_im_nu
+
+
+    ipx_mu = ip_func(x,mu)
+    ipx_nu = ip_func(x,nu)
+    imx_mu = im_func(x,mu)
+    imx_nu = im_func(x,nu)
+
+    x_im_mu_ip_nu = im_func(ipx_nu,mu)
+    x_im_mu_im_nu = im_func(imx_nu,mu)
+    x_ip_mu_im_nu = ip_func(imx_nu,mu)
+
+    
+    Q = U(x(1),x(2),x(3),x(4))%link(mu) * U(ipx_mu(1),ipx_mu(2),ipx_mu(3),ipx_mu(4))%link(nu) * &
+         dagger(U(ipx_nu(1),ipx_nu(2),ipx_nu(3),ipx_nu(4))%link(mu)) * dagger(U(x(1),x(2),x(3),x(4))%link(nu)) + &
+         U(x(1),x(2),x(3),x(4))%link(nu) * dagger(U(x_im_mu_ip_nu(1),x_im_mu_ip_nu(2),x_im_mu_ip_nu(3),x_im_mu_ip_nu(4))%link(mu)) * &
+         dagger(U(imx_mu(1),imx_mu(2),imx_mu(3),imx_mu(4))%link(nu)) * U(imx_mu(1),imx_mu(2),imx_mu(3),imx_mu(4))%link(mu) + &
+         dagger(U(imx_mu(1),imx_mu(2),imx_mu(3),imx_mu(4))%link(mu)) * dagger(U(x_im_mu_im_nu(1),x_im_mu_im_nu(2),x_im_mu_im_nu(3),x_im_mu_im_nu(4))%link(nu)) * &
+         U(x_im_mu_im_nu(1),x_im_mu_im_nu(2),x_im_mu_im_nu(3),x_im_mu_im_nu(4))%link(mu) * U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(nu) + &
+         dagger(U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(nu)) * U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(mu) * &
+         U(x_ip_mu_im_nu(1),x_ip_mu_im_nu(2),x_ip_mu_im_nu(3),x_ip_mu_im_nu(4))%link(nu) * dagger(U(x(1),x(2),x(3),x(4))%link(mu))
+
+
+    F = (Q - dagger(Q))/8
+    
+  end function F
+
+  function topological_density(U,x)
+    type(link_variable), dimension(:,:,:,:), intent(in) :: U
+    integer(i4), intent(in) :: x(4), mu, nu, rho, sigma
+    real(dp) :: topological_density
+
+    topological_density = 0.0_dp
+    do mu = 1, 4
+       do nu = 1, 4
+          do rho = 1, 4
+             do sigma = 1, 4
+                topoligical_density = topological_density + levi_civita(mu,nu,rho,sigma)*trace(F(U,x,mu,nu)*F(U,x,rho,sigma))
+             end do
+          end do
+       end do
+    end do
+    topological_density = -topological_density/(32*pi**2)
+  end function topological_density
+  
 end module dynamics

@@ -34,7 +34,6 @@ program analysis
   
   call read_input()
 
-  N_measurements = 800
 
   allocate(Ep%array(N_measurements),auto_correlation(N_measurements), corr_poly(N_measurements,Lx/2-1))
   allocate(correlation_polyakov_loop(N_measurements,Lx/2-1))
