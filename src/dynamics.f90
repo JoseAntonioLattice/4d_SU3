@@ -297,7 +297,68 @@ contains
          dagger(U(ipx_nu(1),ipx_nu(2),ipx_nu(3),ipx_nu(4))%link(mu)) * dagger(U(x(1),x(2),x(3),x(4))%link(nu))
   end function plaquette
 
+    function staples(U,x,mu) result(A)
 
+    type(link_variable), dimension(:,:,:,:), intent(in) :: U
+    integer(i4), intent(in) :: x(4), mu
+    integer(i4) :: nu
+    integer(i4), parameter :: d = 4
+    type(complex_3x3_matrix) :: A
+
+    integer(i4), dimension(4) :: ipx_mu, ipx_nu, imx_nu, ipx_mu_imx_nu
+
+    A%matrix = 0.0_dp
+    ipx_mu = ip_func(x,mu)
+    do nu = 1, d
+       if(nu .ne. mu)then
+          
+          ipx_nu = ip_func(x,nu)
+          imx_nu = im_func(x,nu)
+          ipx_mu_imx_nu = ip_func(imx_nu,mu)
+
+          A = A +    U(   x(1)  ,   x(2)  ,   x(3)  ,   x(4)  )%link(nu)  &
+                   * U(ipx_nu(1),ipx_nu(2),ipx_nu(3),ipx_nu(4))%link(mu)  &
+            * dagger(U(ipx_mu(1),ipx_mu(2),ipx_mu(3),ipx_mu(4))%link(nu)) &
+            + dagger(U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(nu)) &
+                   * U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(mu)  &
+                   * U(ipx_mu_imx_nu(1),ipx_mu_imx_nu(2),ipx_mu_imx_nu(3),ipx_mu_imx_nu(4))%link(nu)
+       end if
+    end do
+  end function staples
+
+
+
+  function zeta(U,x,mu)
+    type(link_variable), dimension(:,:,:,:), intent(in) :: U
+    integer(i4), intent(in) :: x(4), mu
+    type(complex_3x3_matrix) :: zeta
+    Z = - TA(U(x(1),x(2),x(3),x(4)%link(mu)*dagger(staples(U,x,mu)))
+  end function zeta
+
+  function TA(W)
+    type(complex_3x3_matrix), dimension(:,:,:,:), intent(in) :: W
+    type(complex_3x3_matrix), dimension(:,:,:,:) :: TA
+    TA = (W - dagger(W))/2
+    TA%matrix = TA%matrix - one*tr(W - dagger(W))/6
+    
+  end function TA
+
+  subroutine wilson_flow_euler(U,V,x,mu)
+    type(link_variable), dimension(:,:,:,:), intent(in) :: U
+    type(complex_3x3_matrix), intent(out) :: V
+    integer(i4), intent(in) :: x(4), mu
+
+    V = U(x(1),x(2),x(3),x(4))%link(mu)
+    V = my_exp(epsilon*Zeta(V,x,mu)) * V
+    
+  end subroutine wilson_flow_euler
+
+  function my_exp(W)
+
+
+  end function my_exp
+
+  
   function F(U,x,mu,nu)
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
     integer(i4), intent(in) :: x(4), mu, nu
