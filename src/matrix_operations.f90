@@ -18,6 +18,9 @@ module matrix_operations
     module procedure mat_mult
   end interface
 
+  interface operator(/)
+     module procedure div_mat_scalar
+  end interface operator(/)
 
 contains
 
@@ -39,7 +42,15 @@ contains
     type(complex_3x3_matrix) :: c
     c%matrix = matmul(a%matrix,b%matrix)
   end function mat_mult
-    
+
+  pure function div_mat_scalar(A,s) result(C)
+    type(complex_3x3_matrix), intent(in) :: A
+    real(dp), intent(in) :: s
+    type(complex_3x3_matrix) :: C
+
+    C%matrix = A%matrix/s
+  end function div_mat_scalar
+  
   pure function mat_mult2(a,b) result(c)
     type(complex_3x3_matrix), intent(in) :: a, b
     type(complex_3x3_matrix) :: c

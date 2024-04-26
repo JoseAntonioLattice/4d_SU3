@@ -1,0 +1,96 @@
+
+
+*******************************************************************************
+Wed Apr 17 18:09:36 2024
+
+
+FIT:    data read from 'data_Lx=16_Lt=6_correlation_polyakovloop.dat' u ($0+1):1:2
+        format = x:z:s
+        #datapoints = 7
+function used for fitting: V(r)
+	V(r) = A + B/r + sigma*r
+BREAK: Need via and either parameter list or file
+
+*******************************************************************************
+Wed Apr 17 18:09:42 2024
+
+
+FIT:    data read from 'data_Lx=16_Lt=6_correlation_polyakovloop.dat' u ($0+1):1:2
+        format = x:z:s
+        #datapoints = 7
+function used for fitting: V(r)
+	V(r) = A + B/r + sigma*r
+BREAK: Need via and either parameter list or file
+
+*******************************************************************************
+Wed Apr 17 18:10:22 2024
+
+
+FIT:    data read from 'data_Lx=16_Lt=6_correlation_polyakovloop.dat' u ($0+1):1:2
+        format = x:z:s
+        #datapoints = 7
+function used for fitting: V(x)
+	V(r) = A + B/r + sigma*r
+BREAK: Need via and either parameter list or file
+
+*******************************************************************************
+Wed Apr 17 18:10:47 2024
+
+
+FIT:    data read from 'data_Lx=16_Lt=6_correlation_polyakovloop.dat' u ($0+1):1:2
+        format = x:z:s
+        #datapoints = 7
+function used for fitting: V(x)
+	V(r) = A + B/r + sigma*r
+fitted parameters initialized with current variable values
+
+
+
+*******************************************************************************
+Wed Apr 17 18:11:00 2024
+
+
+FIT:    data read from 'data_Lx=16_Lt=6_correlation_polyakovloop.dat' u ($0+1):1:2
+        format = x:z:s
+        #datapoints = 7
+function used for fitting: V(x)
+	V(x) = A + B/x + sigma*x
+fitted parameters initialized with current variable values
+
+
+
+*******************************************************************************
+Wed Apr 17 18:11:06 2024
+
+
+FIT:    data read from 'data_Lx=16_Lt=6_correlation_polyakovloop.dat' u ($0+1):1:2
+        format = x:z:s
+        #datapoints = 7
+function used for fitting: V(x)
+	V(x) = A + B/x + sigma*x
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             B             sigma        
+   0 9.8727636107e+04   0.00e+00  4.88e+01    1.000000e+00   1.000000e+00   1.000000e+00
+   5 1.0626096637e+00  -2.90e-06  4.88e-04    9.555146e-01  -4.949192e-01   4.155452e-02
+
+After 5 iterations the fit converged.
+final sum of squares of residuals : 1.06261
+rel. change during last iteration : -2.90409e-11
+
+degrees of freedom    (FIT_NDF)                        : 4
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.515415
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.265652
+p-value of the Chisq distribution (FIT_P)              : 0.900158
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.955515         +/- 0.1016       (10.64%)
+B               = -0.494919        +/- 0.0776       (15.68%)
+sigma           = 0.0415545        +/- 0.02629      (63.27%)
+
+correlation matrix of the fit parameters:
+                A      B      sigma  
+A               1.000 
+B              -0.992  1.000 
+sigma          -0.948  0.905  1.000 

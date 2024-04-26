@@ -8,11 +8,9 @@ module dynamics
   use get_index_mod
   use create_files
 
-
-  integer(i4), dimension(4,4,4,4) :: levi_civita
-  
   implicit none
-
+  integer(i4), dimension(4,4,4,4) :: levi_civita
+  real(dp), parameter :: pi = acos(-1.0_dp)
   !private !:: dp, i4, link_variable
   !public :: sweeps, create_update, sgn, drand, take_measurements, dagger, tr, gauge_transformation, DS
 
@@ -87,7 +85,7 @@ contains
 
     do i = 1, N_thermalization
        call sweeps(U,Lx,Lt,beta,N,d,algorithm)
-       if(mod(i,10) == 0) call normalization(U,L)
+       if(mod(i,10) == 0) call normalization(U,Lx,Lt)
     end do
    end subroutine thermalization
 
@@ -109,7 +107,7 @@ contains
            call take_measurements(U,Lx,Lt,E_p,avr_polyakov_loop,correlation_polyakov_loop)
            write(100,*) E_p,avr_polyakov_loop%re, avr_polyakov_loop%im,correlation_polyakov_loop 
         end if
-        if(mod(i,10) == 0) call normalization(U,L)
+        if(mod(i,10) == 0) call normalization(U,Lx,Lt)
      end do 
 
    end subroutine measurements_sweeps
@@ -318,23 +316,32 @@ contains
     x_ip_mu_im_nu = ip_func(imx_nu,mu)
 
     
-    Q = U(x(1),x(2),x(3),x(4))%link(mu) * U(ipx_mu(1),ipx_mu(2),ipx_mu(3),ipx_mu(4))%link(nu) * &
-         dagger(U(ipx_nu(1),ipx_nu(2),ipx_nu(3),ipx_nu(4))%link(mu)) * dagger(U(x(1),x(2),x(3),x(4))%link(nu)) + &
-         U(x(1),x(2),x(3),x(4))%link(nu) * dagger(U(x_im_mu_ip_nu(1),x_im_mu_ip_nu(2),x_im_mu_ip_nu(3),x_im_mu_ip_nu(4))%link(mu)) * &
-         dagger(U(imx_mu(1),imx_mu(2),imx_mu(3),imx_mu(4))%link(nu)) * U(imx_mu(1),imx_mu(2),imx_mu(3),imx_mu(4))%link(mu) + &
-         dagger(U(imx_mu(1),imx_mu(2),imx_mu(3),imx_mu(4))%link(mu)) * dagger(U(x_im_mu_im_nu(1),x_im_mu_im_nu(2),x_im_mu_im_nu(3),x_im_mu_im_nu(4))%link(nu)) * &
-         U(x_im_mu_im_nu(1),x_im_mu_im_nu(2),x_im_mu_im_nu(3),x_im_mu_im_nu(4))%link(mu) * U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(nu) + &
-         dagger(U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(nu)) * U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(mu) * &
-         U(x_ip_mu_im_nu(1),x_ip_mu_im_nu(2),x_ip_mu_im_nu(3),x_ip_mu_im_nu(4))%link(nu) * dagger(U(x(1),x(2),x(3),x(4))%link(mu))
+    Q = U(x(1),x(2),x(3),x(4))%link(mu) * &
+         U(ipx_mu(1),ipx_mu(2),ipx_mu(3),ipx_mu(4))%link(nu) * &
+         dagger(U(ipx_nu(1),ipx_nu(2),ipx_nu(3),ipx_nu(4))%link(mu)) *&
+         dagger(U(x(1),x(2),x(3),x(4))%link(nu)) + &
+         U(x(1),x(2),x(3),x(4))%link(nu) * &
+         dagger(U(x_im_mu_ip_nu(1),x_im_mu_ip_nu(2),x_im_mu_ip_nu(3),x_im_mu_ip_nu(4))%link(mu)) * &
+         dagger(U(imx_mu(1),imx_mu(2),imx_mu(3),imx_mu(4))%link(nu)) &
+         * U(imx_mu(1),imx_mu(2),imx_mu(3),imx_mu(4))%link(mu) + &
+         dagger(U(imx_mu(1),imx_mu(2),imx_mu(3),imx_mu(4))%link(mu)) &
+         * dagger(U(x_im_mu_im_nu(1),x_im_mu_im_nu(2),x_im_mu_im_nu(3),x_im_mu_im_nu(4))%link(nu)) * &
+         U(x_im_mu_im_nu(1),x_im_mu_im_nu(2),x_im_mu_im_nu(3),x_im_mu_im_nu(4))%link(mu) &
+         * U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(nu) + &
+         dagger(U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(nu))&
+         * U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(mu) * &
+         U(x_ip_mu_im_nu(1),x_ip_mu_im_nu(2),x_ip_mu_im_nu(3),x_ip_mu_im_nu(4))%link(nu) &
+         * dagger(U(x(1),x(2),x(3),x(4))%link(mu))
 
 
-    F = (Q - dagger(Q))/8
+    F = (Q - dagger(Q))/8.0_dp
     
   end function F
 
   function topological_density(U,x)
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
-    integer(i4), intent(in) :: x(4), mu, nu, rho, sigma
+    integer(i4), intent(in) :: x(4)
+    integer(i4) :: mu, nu, rho, sigma
     real(dp) :: topological_density
 
     topological_density = 0.0_dp
@@ -342,7 +349,7 @@ contains
        do nu = 1, 4
           do rho = 1, 4
              do sigma = 1, 4
-                topoligical_density = topological_density + levi_civita(mu,nu,rho,sigma)*trace(F(U,x,mu,nu)*F(U,x,rho,sigma))
+                topological_density = topological_density + levi_civita(mu,nu,rho,sigma)*tr(F(U,x,mu,nu)*F(U,x,rho,sigma))
              end do
           end do
        end do
