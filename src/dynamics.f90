@@ -232,7 +232,7 @@ contains
     real(dp) :: action, beta_N
     integer(i4) :: x,y,z,w,mu,nu
     integer(i4), parameter :: d = 4, number_of_planes = d*(d-1)/2
-    
+    type(complex_3x3_matrix) :: V
     
     action = 0.0_dp
     do x = 1, Lx
@@ -240,9 +240,11 @@ contains
           do z = 1, Lx
              do w = 1, Lt
                 do mu = 1, d - 1
+                   call wilson_flow(U,V,[x,y,z,w],mu)
                    do nu = mu + 1, d
                       action = action + real(tr(plaquette(U,[x,y,z,w],mu,nu)),dp)
                    end do
+                   call wilson_flow(U,V,[x,y,z,w],4)
                 end do
              end do
           end do
@@ -297,48 +299,21 @@ contains
          dagger(U(ipx_nu(1),ipx_nu(2),ipx_nu(3),ipx_nu(4))%link(mu)) * dagger(U(x(1),x(2),x(3),x(4))%link(nu))
   end function plaquette
 
-    function staples(U,x,mu) result(A)
-
-    type(link_variable), dimension(:,:,:,:), intent(in) :: U
-    integer(i4), intent(in) :: x(4), mu
-    integer(i4) :: nu
-    integer(i4), parameter :: d = 4
-    type(complex_3x3_matrix) :: A
-
-    integer(i4), dimension(4) :: ipx_mu, ipx_nu, imx_nu, ipx_mu_imx_nu
-
-    A%matrix = 0.0_dp
-    ipx_mu = ip_func(x,mu)
-    do nu = 1, d
-       if(nu .ne. mu)then
-          
-          ipx_nu = ip_func(x,nu)
-          imx_nu = im_func(x,nu)
-          ipx_mu_imx_nu = ip_func(imx_nu,mu)
-
-          A = A +    U(   x(1)  ,   x(2)  ,   x(3)  ,   x(4)  )%link(nu)  &
-                   * U(ipx_nu(1),ipx_nu(2),ipx_nu(3),ipx_nu(4))%link(mu)  &
-            * dagger(U(ipx_mu(1),ipx_mu(2),ipx_mu(3),ipx_mu(4))%link(nu)) &
-            + dagger(U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(nu)) &
-                   * U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(mu)  &
-                   * U(ipx_mu_imx_nu(1),ipx_mu_imx_nu(2),ipx_mu_imx_nu(3),ipx_mu_imx_nu(4))%link(nu)
-       end if
-    end do
-  end function staples
-
 
 
   function zeta(U,x,mu)
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
     integer(i4), intent(in) :: x(4), mu
     type(complex_3x3_matrix) :: zeta
-    Z = - TA(U(x(1),x(2),x(3),x(4)%link(mu)*dagger(staples(U,x,mu)))
+    zeta = TA(U(x(1),x(2),x(3),x(4))%link(mu)*dagger(staples(U,x,mu)))
+    zeta%matrix = -zeta%matrix
   end function zeta
 
   function TA(W)
-    type(complex_3x3_matrix), dimension(:,:,:,:), intent(in) :: W
-    type(complex_3x3_matrix), dimension(:,:,:,:) :: TA
-    TA = (W - dagger(W))/2
+    type(complex_3x3_matrix), intent(in) :: W
+    type(complex_3x3_matrix) :: TA
+    TA = (W - dagger(W))
+    Ta%matrix = TA%matrix/2
     TA%matrix = TA%matrix - one*tr(W - dagger(W))/6
     
   end function TA
@@ -346,15 +321,48 @@ contains
   subroutine wilson_flow_euler(U,V,x,mu)
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
     type(complex_3x3_matrix), intent(out) :: V
+    type(complex_3x3_matrix) :: B
     integer(i4), intent(in) :: x(4), mu
-
-    V = U(x(1),x(2),x(3),x(4))%link(mu)
-    V = my_exp(epsilon*Zeta(V,x,mu)) * V
+    real(dp) :: epsilon = 0.1_dp
+    integer :: i
     
+    V = U(x(1),x(2),x(3),x(4))%link(mu)
+
+    do i = 1, 10
+       B = Zeta(V,x,mu)
+       B%matrix = B%matrix*epsilon
+       V = my_exp(B) * V
+    end do
   end subroutine wilson_flow_euler
 
-  function my_exp(W)
+  function my_exp(W) result(res)
+    type(complex_3x3_matrix), intent(in) :: W
+    type(complex_3x3_matrix) :: res, B, C
+    
+    integer, parameter :: n = 3
+    integer, parameter :: lda = 3
+    integer, parameter :: ldvl  = n
+    integer, parameter :: ldvr = n
+    integer, parameter :: lwork = 2*n
+    
+    complex(dp), dimension(n,n) :: A
+    complex(dp), dimension(lwork) :: work
+    complex(dp), dimension(n) :: eigenv
+    complex(dp), dimension(ldvl,n) :: vl
+    complex(dp), dimension(ldvr,n) :: vr
+    real(dp), dimension(2*n) :: rwork
+    integer :: info
 
+    A = W%matrix
+    call zgeev('N', 'V', n, A, lda,eigenv, vl, ldvl, vr, ldvr, WORK, lwork, rwork,INFO)
+
+    C%matrix = vr
+    B%matrix = one
+    B%matrix(1,1) = exp(eigenv(1))
+    B%matrix(2,2) = exp(eigenv(2))
+    B%matrix(3,3) = exp(eigenv(3))
+    
+    res = C*B*dagger(C)
 
   end function my_exp
 
@@ -403,7 +411,7 @@ contains
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
     integer(i4), intent(in) :: x(4)
     integer(i4) :: mu, nu, rho, sigma
-    real(dp) :: topological_density
+    complex(dp) :: topological_density
 
     topological_density = 0.0_dp
     do mu = 1, 4

@@ -2,6 +2,7 @@ module local_update_algorithms
 
   use data_types_observables
   use matrix_operations
+  !use dynamics, only : staples
   use iso_fortran_env, only : dp => real64, i4 => int32
   use periodic_boundary_conditions_mod, only : ip_func, im_func
   use get_index_mod
@@ -298,6 +299,35 @@ contains
     DS = - (beta/N) * real( tr( (Up - U(x(1),x(2),x(3),x(4))%link(mu)) * dagger(staples(U,x,mu)) ) )
 
   end function DS
+
+      function staples(U,x,mu) result(A)
+
+    type(link_variable), dimension(:,:,:,:), intent(in) :: U
+    integer(i4), intent(in) :: x(4), mu
+    integer(i4) :: nu
+    integer(i4), parameter :: d = 4
+    type(complex_3x3_matrix) :: A
+
+    integer(i4), dimension(4) :: ipx_mu, ipx_nu, imx_nu, ipx_mu_imx_nu
+
+    A%matrix = 0.0_dp
+    ipx_mu = ip_func(x,mu)
+    do nu = 1, d
+       if(nu .ne. mu)then
+          
+          ipx_nu = ip_func(x,nu)
+          imx_nu = im_func(x,nu)
+          ipx_mu_imx_nu = ip_func(imx_nu,mu)
+
+          A = A +    U(   x(1)  ,   x(2)  ,   x(3)  ,   x(4)  )%link(nu)  &
+                   * U(ipx_nu(1),ipx_nu(2),ipx_nu(3),ipx_nu(4))%link(mu)  &
+            * dagger(U(ipx_mu(1),ipx_mu(2),ipx_mu(3),ipx_mu(4))%link(nu)) &
+            + dagger(U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(nu)) &
+                   * U(imx_nu(1),imx_nu(2),imx_nu(3),imx_nu(4))%link(mu)  &
+                   * U(ipx_mu_imx_nu(1),ipx_mu_imx_nu(2),ipx_mu_imx_nu(3),ipx_mu_imx_nu(4))%link(nu)
+       end if
+    end do
+  end function staples
 
 
   function random_uniform(a,b) result(y)
