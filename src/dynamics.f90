@@ -46,7 +46,7 @@ contains
     levi_civita(4,2,3,1) = -1
     levi_civita(4,3,1,2) = -1
 
-    
+    print*, levi_civita
   end subroutine set_levi_civita
   
 
@@ -147,19 +147,38 @@ contains
     real(dp):: correlation_polyakov_loop(Lx/2-1)
     integer(i4) :: x,y,z,w,t,mu,nu, xp, yp, zp
     integer(i4), parameter :: d = 4, number_of_planes = d*(d-1)/2
-    
-    
+    complex(dp) :: q
+    type(link_variable), dimension(Lx,Lx,Lx,Lt) :: Up
+    type(complex_3x3_matrix) :: V
+   
+    q = 0.0_dp 
     Ep = 0.0_dp
+    Up = U
     do x = 1, Lx
        do y = 1, Lx
           do z = 1, Lx
              polyakov_loop_array(x,y,z) = polyakov_loop(U,[x,y,z],Lt)
              do w = 1, Lt
                 do mu = 1, d - 1
+                   call wilson_flow_euler(Up,V,[x,y,z,w],mu)
+                   !q = q + topological_density(U,[x,y,z,w])
                    do nu = mu + 1, d
                       Ep = Ep + real(tr(plaquette(U,[x,y,z,w],mu,nu)),dp)
                    end do
                 end do
+                call wilson_flow_euler(Up,V,[x,y,z,w],d)
+                !q = q + topological_density(U,[x,y,z,w])
+             end do
+          end do
+       end do
+    end do
+
+
+    do x = 1, Lx
+       do y = 1, Lx
+          do z = 1, Lx
+             do w = 1, Lt
+                q = q + topological_density(Up,[x,y,z,w])
              end do
           end do
        end do
@@ -186,6 +205,7 @@ contains
     end do
     
     Ep =  Ep/(3*number_of_planes*Lx**3*Lt)
+    print*, -q/(32*pi**2)
     !print*, ep!, inv_polyakov_loop_array(1,1,1), conjg(polyakov_loop_array(1,1,1))
   end subroutine take_measurements
 
@@ -229,28 +249,31 @@ contains
 
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
     integer(i4), intent(in) ::  Lx,Lt
+    
     real(dp) :: action, beta_N
     integer(i4) :: x,y,z,w,mu,nu
     integer(i4), parameter :: d = 4, number_of_planes = d*(d-1)/2
-    type(complex_3x3_matrix) :: V
+    
     
     action = 0.0_dp
+
     do x = 1, Lx
        do y = 1, Lx
           do z = 1, Lx
              do w = 1, Lt
                 do mu = 1, d - 1
-                   call wilson_flow(U,V,[x,y,z,w],mu)
+                   
                    do nu = mu + 1, d
                       action = action + real(tr(plaquette(U,[x,y,z,w],mu,nu)),dp)
                    end do
-                   call wilson_flow(U,V,[x,y,z,w],4)
+                   
                 end do
              end do
           end do
        end do
     end do
     action =  - beta_N * action/number_of_planes
+
   end function action
 
   subroutine normalization(U,Lx,Lt)
@@ -319,19 +342,21 @@ contains
   end function TA
 
   subroutine wilson_flow_euler(U,V,x,mu)
-    type(link_variable), dimension(:,:,:,:), intent(in) :: U
+    type(link_variable), dimension(:,:,:,:), intent(inout) :: U
     type(complex_3x3_matrix), intent(out) :: V
     type(complex_3x3_matrix) :: B
     integer(i4), intent(in) :: x(4), mu
     real(dp) :: epsilon = 0.1_dp
     integer :: i
-    
-    V = U(x(1),x(2),x(3),x(4))%link(mu)
+    integer, parameter :: n = 30
+    !type(complex_3x3_matrix), dimension(n), intent(out) :: V
 
-    do i = 1, 10
-       B = Zeta(V,x,mu)
+    V = U(x(1),x(2),x(3),x(4))%link(mu)
+    do i = 1, n
+       B = Zeta(U,x,mu)
        B%matrix = B%matrix*epsilon
-       V = my_exp(B) * V
+       U(x(1),x(2),x(3),x(4))%link(mu) = my_exp(B) * U(x(1),x(2),x(3),x(4))%link(mu)
+       !V(i) = U(x(1),x(2),x(3),x(4))%link(mu)
     end do
   end subroutine wilson_flow_euler
 
@@ -423,7 +448,7 @@ contains
           end do
        end do
     end do
-    topological_density = -topological_density/(32*pi**2)
+    !topological_density = -topological_density/(32*pi**2)
   end function topological_density
   
 end module dynamics
