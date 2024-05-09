@@ -177,8 +177,13 @@ The parameters $B$ and $a^2\sigma$ can be obtained by a fit to the function
 \begin{equation}
 	aV(an) = aA+\frac{B}{n} + a^2\sigma n,
 \end{equation}	
-	where $r = a n$.
-	Once obtained the dimensionless quantity $X = r_0/a$, the lattice spacing in physical units is $a = 0.5/X \ \text{fm}$. 
+	where $r = a n$ and $n\in \mathbb{N}$.
+	Once obtained the dimensionless quantity $X = r_0/a$, the lattice spacing in physical units is $a = 0.5/X \ \text{fm}$.
+	
+	The temperature $T$ can be extracted by
+	\begin{equation}
+	\frac{1}{T}= a L_t .
+\end{equation}	 
 \section{Algorithms}
 
 
@@ -248,6 +253,14 @@ We present simulation results for the 4-dimensional SU(3) lattice gague field th
 \label{fig:Ep}
 \end{figure}
 \end{center}
+
+With a volume $16^3 \times 6$ the correlation of the Polyakov loop is seen in figure \ref{fig:correlation_polyakov}.
+
+\begin{figure}
+\includegraphics[scale=0.6]{../images/correlation_polyakov.pdf}
+\caption{Static quark potential.}
+\label{fig:correlation_polyakov}
+\end{figure}
 \section{Acknowledgements}
 The author thanks Dr.\ Wolfgang Bietenholz for funding (in the form of meals) this research. Thanks to Dr.\ Urs Gerber for providing a recipe for implementing the heatbath algorithm for the U(1) gauge theory at an early stage of this research. Finally, I want to thank Ariana Grande, The Weeknd and Polyphia for giving the right inspiration while working on this paper. Without their music I could have easily gone crazy.
 
