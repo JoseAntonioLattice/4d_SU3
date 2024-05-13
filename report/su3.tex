@@ -61,6 +61,7 @@ see Fig.\ \ref{fig:conjg_link}.
 	\label{fig:conjg_link}
 \end{subfigure}
 \end{center}
+\caption{Graphical representation of link variables.}
 \end{figure}
 
 Under a gauge transformation the link variables transform as
@@ -132,6 +133,7 @@ In SU(3) the SU(2) elements are of the form
 		P(\vec{x}\,) = \text{Tr}\,\prod_{t_\text{E}=1}^{L_t}U_4(\vec{x},t_\text{E}).
 	\end{equation}
 
+\subsection{Static quark potential}
 One important quantity involving Polyakov loops is their correlation. The correlation function of Polyakov loops is related to the static quark potential $V(r)$ as
 \begin{equation}
 	\langle P(\vec{x}\,) P(\vec{y}\,)^{\dagger} \rangle \propto e^{-L_t a V(r)} \left(1 +\mathcal{O}\left( e^{-L_t a \Delta E}\right) \right),
@@ -254,8 +256,32 @@ We present simulation results for the 4-dimensional SU(3) lattice gague field th
 \end{figure}
 \end{center}
 
-With a volume $16^3 \times 6$ the correlation of the Polyakov loop is seen in figure \ref{fig:correlation_polyakov}.
+\begin{center}
+\begin{figure}
+\includegraphics[scale=0.6]{../images/polyakov_loop.pdf}
+\caption{Scatter plot of the expectation value of the Polyakov loop at $\beta = 6.063$ and volume $V = 8^4$.}
+\label{fig:poly}
+\end{figure}
+\end{center}
 
+\begin{center}
+\begin{figure}
+\includegraphics[scale=0.6]{../images/polyakov_loop_beta=57.pdf}
+\caption{Scatter plot of the expectation value of the Polyakov loop at $\beta = 5.7$ and volume $V = 8^4$.}
+\label{fig:poly}
+\end{figure}
+\end{center}
+
+
+With a volume $16^3 \times 6$ and at $\beta = 5.7$ the static potential $aV(an)$ using the correlation of the Polyakov loop is seen in figure \ref{fig:correlation_polyakov}. We obtained a string tension $a^2\sigma = 0.042$ and $B = -0.49$, therefore
+\begin{equation}
+	\frac{r_0}{a} = \sqrt{\frac{1.65 - 0.49}{0.042}} = 5.25,
+\end{equation}
+and the lattice spacing in physical units corresponds to
+\begin{equation}
+	a = 0.5/ 5.25 \ \text{fm} = 0.095 \ \text{fm}.
+\end{equation}
+Finally the temperature corresponds to $T = \frac{197 \ \text{MeV}}{aL_t}  = \frac{197\ \text{MeV}}{0.095 \cdot 6} = 345 \ \text{MeV}$.
 \begin{figure}
 \includegraphics[scale=0.6]{../images/correlation_polyakov.pdf}
 \caption{Static quark potential.}
