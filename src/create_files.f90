@@ -5,16 +5,17 @@ module create_files
 
 contains
 
-  subroutine create_measurements_file(Lx,Lt,beta,algorithm,equilibrium)
-    integer, intent(in) :: Lx,Lt
+  subroutine create_measurements_file(Lx1,Lt1,beta,algorithm1,equilibrium1)
+    use parameters
+    integer, intent(in) :: Lx1,Lt1
     real(8), intent(in) :: beta
-    character(*), intent(in) :: algorithm
-    logical :: equilibrium, file_exists, condition
+    character(*), intent(in) :: algorithm1
+    logical :: equilibrium1, file_exists, condition
     integer :: outunit, i
 
     character(100) :: directory, eq, data_file
 
-    if(equilibrium .eqv. .true.) then
+    if(equilibrium1 .eqv. .true.) then
        eq = "equilibrium"
     else
        eq = "out_of_equilibrium"
@@ -23,16 +24,16 @@ contains
     directory = "data"
     call check_directory(trim(directory))
     
-    directory = trim(directory)//"/Lx="//trim(int2str(Lx))
+    directory = trim(directory)//"/Lx="//trim(int2str(Lx1))
     call check_directory(trim(directory))
     
-    directory = trim(directory)//"/Lt="//trim(int2str(Lt))
+    directory = trim(directory)//"/Lt="//trim(int2str(Lt1))
     call check_directory(trim(directory))
     
     directory = trim(directory)//"/"//trim(eq)
     call check_directory(trim(directory))
 
-    directory = trim(directory)//"/"//trim(algorithm)
+    directory = trim(directory)//"/"//trim(algorithm1)
     call check_directory(trim(directory))
 
     directory = trim(directory)//"/beta="//real2str(beta)
@@ -49,6 +50,7 @@ contains
        i = i + 1
     end do
     open(unit = 100, file = data_file)
+    write(100, nml = input_parameters )
     
   end subroutine create_measurements_file
 

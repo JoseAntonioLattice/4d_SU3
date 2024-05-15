@@ -1,9 +1,9 @@
 &input_parameters
-Lx = 6 ,
+Lx = 16 ,
 Lt = 6
-N_thermalization = 50,
-N_measurements = 100,
-N_skip = 5,
+N_thermalization = 100,
+N_measurements = 10000,
+N_skip = 1,
 algorithm = "heatbath"
 equilibrium=T
 /

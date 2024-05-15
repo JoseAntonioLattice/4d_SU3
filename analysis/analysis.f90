@@ -44,10 +44,11 @@ program analysis
        , status = "unknown")
   do i_beta = 1,size(beta)
      data_file = "data/Lx="//trim(int2str(Lx))//"/Lt="//trim(int2str(Lt))//"/"//"equilibrium"//"/"//trim(algorithm)&
-          //"/beta="//real2str(beta(i_beta))//"/observables_7.dat"
+          //"/beta="//real2str(beta(i_beta))//"/observables_8.dat"
      !print*, trim(data_file)
      open( newunit = inunit, file = trim(data_file) )
-     
+
+     read(inunit, nml = input_parameters)
      do i = 1, N_measurements
         read(inunit,*) Ep%array(i),poly(1),poly(2), correlation_polyakov_loop(i,:)
         corr_poly(i,:) = correlation_polyakov_loop(i,:)
