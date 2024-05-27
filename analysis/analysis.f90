@@ -44,7 +44,7 @@ program analysis
        , status = "unknown")
   do i_beta = 1,size(beta)
      data_file = "data/Lx="//trim(int2str(Lx))//"/Lt="//trim(int2str(Lt))//"/"//"equilibrium"//"/"//trim(algorithm)&
-          //"/beta="//real2str(beta(i_beta))//"/observables_8.dat"
+          //"/beta="//real2str(beta(i_beta))//"/observables_9.dat"
      !print*, trim(data_file)
      open( newunit = inunit, file = trim(data_file) )
 
