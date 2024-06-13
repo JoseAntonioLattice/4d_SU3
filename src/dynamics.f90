@@ -98,14 +98,15 @@ contains
      integer(i4), intent(in) :: N_measurements, N_skip
      real(dp) :: E_p
      complex(dp) :: avr_polyakov_loop
-     real(dp) :: correlation_polyakov_loop(Lx/2-1)
+     !real(dp) :: correlation_polyakov_loop(Lx/2-1)
+     complex(dp) :: correlation_polyakov_loop(Lx/2-1)
      integer(i4) :: i
 
      do i = 1, N_measurements*N_skip
         call sweeps(U,Lx,Lt,beta,N,d,algorithm)
         if( mod(i,N_skip) == 0)then
            call take_measurements(U,Lx,Lt,E_p,avr_polyakov_loop,correlation_polyakov_loop)
-           write(100,*) E_p,avr_polyakov_loop%re, avr_polyakov_loop%im,correlation_polyakov_loop 
+           write(100,*) E_p,avr_polyakov_loop,correlation_polyakov_loop 
         end if
         if(mod(i,10) == 0) call normalization(U,Lx,Lt)
      end do 
@@ -117,24 +118,21 @@ contains
     integer(i4), intent(in)  :: Lx,Lt, N, d
     real(dp), intent(in) :: beta
     character(*), intent(in) :: algorithm
-    type(complex_3x3_matrix) :: Up
     integer(i4) :: x, y,z,w, mu
-    real(dp) :: Delta_S
 
-    do x = 1, Lx
-       do y = 1, Lx
-          do z = 1, Lx
-             do w = 1, Lt
-                do mu = 1, d
-                   !Delta_S = DS(U,mu,Up,[x,y,z,w],beta,N)
-                   !call metropolis(Delta_S,U(x,y,z,w)%link(mu)%matrix,Up%matrix)
-                   !print*, x,y,z,w,mu
-                   call heatbath(U,[x,y,z,w],mu,beta)
+    if ( N == 3 .and. algorithm == 'heatbath' )then
+       do x = 1, Lx
+          do y = 1, Lx
+             do z = 1, Lx
+                do w = 1, Lt
+                   do mu = 1, d
+                      call heatbath(U,[x,y,z,w],mu,beta)
+                   end do
                 end do
              end do
           end do
        end do
-    end do
+    end if
   end subroutine sweeps
 
 
@@ -144,48 +142,30 @@ contains
     real(dp), intent(out) :: Ep
     complex(dp) :: polyakov_loop_array(Lx,Lx,Lx)
     complex(dp), intent(out) :: avr_polyakov_loop
-    real(dp):: correlation_polyakov_loop(Lx/2-1)
+    complex(dp), intent(out) :: correlation_polyakov_loop(Lx/2-1)
     integer(i4) :: x,y,z,w,t,mu,nu, xp, yp, zp
     integer(i4), parameter :: d = 4, number_of_planes = d*(d-1)/2
-    complex(dp) :: q
-    type(link_variable), dimension(Lx,Lx,Lx,Lt) :: Up
-    type(complex_3x3_matrix) :: V
-   
-    q = 0.0_dp 
+        
     Ep = 0.0_dp
-    Up = U
+    
     do x = 1, Lx
        do y = 1, Lx
           do z = 1, Lx
              polyakov_loop_array(x,y,z) = polyakov_loop(U,[x,y,z],Lt)
              do w = 1, Lt
                 do mu = 1, d - 1
-                   !call wilson_flow_euler(Up,V,[x,y,z,w],mu)
-                   !q = q + topological_density(U,[x,y,z,w])
                    do nu = mu + 1, d
                       Ep = Ep + real(tr(plaquette(U,[x,y,z,w],mu,nu)),dp)
                    end do
                 end do
-                !call wilson_flow_euler(Up,V,[x,y,z,w],d)
-                !q = q + topological_density(U,[x,y,z,w])
              end do
           end do
        end do
     end do
 
+    avr_polyakov_loop = sum(polyakov_loop_array) 
 
-    !do x = 1, Lx
-    !   do y = 1, Lx
-    !      do z = 1, Lx
-    !         do w = 1, Lt
-    !            q = q + topological_density(Up,[x,y,z,w])
-    !         end do
-    !      end do
-    !   end do
-    !end do
-
-    avr_polyakov_loop = sum(polyakov_loop_array)/Lx**3 
-    correlation_polyakov_loop = 0.0_dp
+    correlation_polyakov_loop = (0.0_dp,0.0_dp)
 
     do t = 1, Lx/2 - 1
        do x = 1, Lx
@@ -196,17 +176,20 @@ contains
                 zp = mod(z+t,Lx); if(zp == 0) zp = Lx
                                 
                 correlation_polyakov_loop(t) = correlation_polyakov_loop(t) + &
-                     real(polyakov_loop_array(x,y,z) * conjg( polyakov_loop_array(xp,y,z) + &
+                     polyakov_loop_array(x,y,z) * &
+                     conjg( &
+                     polyakov_loop_array(xp,y,z) + &
                      polyakov_loop_array(x,yp,z) + &
-                     polyakov_loop_array(x,y,zp)))
+                     polyakov_loop_array(x,y,zp) &
+                     )
+
              end do
           end do
        end do
     end do
     
     Ep =  Ep/(3*number_of_planes*Lx**3*Lt)
-    !print*, -q/(32*pi**2)
-    !print*, ep!, inv_polyakov_loop_array(1,1,1), conjg(polyakov_loop_array(1,1,1))
+    
   end subroutine take_measurements
 
   function polyakov_loop(U,x,L)

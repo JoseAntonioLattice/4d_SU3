@@ -11,7 +11,7 @@ contains
     real(8), intent(in) :: beta
     character(*), intent(in) :: algorithm1
     logical :: equilibrium1, file_exists, condition
-    integer :: outunit, i
+    integer :: i
 
     character(100) :: directory, eq, data_file
 

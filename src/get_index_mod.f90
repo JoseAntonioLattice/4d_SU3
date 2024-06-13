@@ -38,7 +38,7 @@ contains
 
     integer, dimension(d) :: vector
 
-    integer :: i, n, modx, suma
+    integer :: i, modx, suma
 
     modx = mod(idx,L)
     vector(1) = modx

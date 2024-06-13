@@ -45,7 +45,7 @@ contains
     integer(i4), intent(in) :: x(4)
     integer(i4), intent(in) :: mu
     real(dp), intent(in) :: beta
-    type(complex_3x3_matrix) :: R, S, T, W, A, Up
+    type(complex_3x3_matrix) :: R, S, T, W, A
     complex(dp), dimension(2,2) :: R2, S2, T2, W2
 
     
@@ -236,8 +236,6 @@ contains
 
   subroutine create_biased_update(X)
     type(complex_3x3_matrix), intent(out) :: X
-    complex(dp), dimension(3) :: uu, vv
-    real(dp), dimension(6) :: r1,r2
     type(complex_3x3_matrix) :: R, S, T
     complex(dp) :: a, b
 

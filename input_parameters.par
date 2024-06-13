@@ -2,7 +2,7 @@
 Lx = 16 ,
 Lt = 6
 N_thermalization = 100,
-N_measurements = 5000,
+N_measurements = 10000,
 N_skip = 10,
 algorithm = "heatbath"
 equilibrium=T

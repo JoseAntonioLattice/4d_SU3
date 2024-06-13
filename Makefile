@@ -10,8 +10,8 @@ SOURCE= number2string_mod.f90 check_files_directories_mod.f90 create_files.f90 p
 OBJECT= $(patsubst %,$(BIN)/%, $(notdir $(SOURCE:.f90=.o)))
 
 
-FFLAGS= -Wall -Wextra -fcheck=all -O0 -J$(BIN) -I$(BIN)
-
+#FFLAGS= -Wall -Wextra -fcheck=all -O0 -J$(BIN) -I$(BIN)
+FFLAGS = -O3 -J$(BIN) -I$(BIN)
 $(BIN)/$(TARGET): $(OBJECT)
 	$(FC) -o $@ $^ -llapack
 
@@ -22,7 +22,7 @@ $(BIN)/%.o: $(SRC)/%.f90
 
 
 run :
-	@echo input_parameters.par | $(BIN)/$(TARGET)
+	@echo input_parameters.par | time $(BIN)/$(TARGET)
 
 help :
 	@echo "src: $(SOURCE)"

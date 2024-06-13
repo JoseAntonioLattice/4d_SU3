@@ -6,8 +6,6 @@ program main
   use dynamics
   implicit none
 
-  integer :: i
-  
   call read_input_parameters()
   allocate(U(Lx,Lx,Lx,Lt))
  

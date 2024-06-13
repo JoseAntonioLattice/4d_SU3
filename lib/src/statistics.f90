@@ -6,7 +6,8 @@ module statistics
   implicit none
 
   private
-  public :: std_err, std_err_scalar, jackknife, max_jackknife_error,max_jackknife_error_2
+  public :: std_err, std_err_scalar, jackknife, max_jackknife_error,max_jackknife_error_2,&
+       cmplx_std_err, cmplx_max_jackknife_error_2
 
 contains
 
@@ -129,7 +130,7 @@ contains
   end subroutine multiples
 
 
-    subroutine STD_ERR_scalar(summa,SUMMASQ,N,avg,std_ERROR)
+  subroutine STD_ERR_scalar(summa,SUMMASQ,N,avg,std_ERROR)
     IMPLICIT NONE
     real(dp), INTENT(IN)  :: SUMMA, SUMMASQ
     REAL(dp), INTENT(OUT) :: AVG          ! SAMPLE MEAN
@@ -137,16 +138,32 @@ contains
     INTEGER(i4), INTENT(IN) :: N
     REAL(dp) :: VAR  ! VARIANCE
     real(dp) :: S    ! STANDARD DEVIATION OF THE SAMPLE MEAN
-
+    
     AVG = SUMMA/DBLE(N)
     ! VariaNCE
     var = (SUMMASQ - N*AVG*AVG)/(N - 1)
-
+    
     ! STANDARD ERROR
     S = sqrt(var)
     STD_ERROR = S/N**0.5D0
+    
+  end subroutine STD_ERR_scalar
 
-    end subroutine STD_ERR_scalar
+  subroutine cmplx_std_err(array, avr, err)
+    complex(dp), intent(in), dimension(:) :: array
+    complex(dp), intent(out) :: avr, err
+        
+    call std_err(array%re,avr%re,err%re)
+    call std_err(array%im,avr%im,err%im)
+    
+  end subroutine cmplx_std_err
 
+  subroutine cmplx_max_jackknife_error_2(array, avr, err, bins)
+    complex(dp), intent(in), dimension(:) :: array
+    complex(dp), intent(out) :: avr, err
+    integer(i4), intent(out) :: bins(2)
 
+    call max_jackknife_error_2(array%re,avr%re,err%re,bins(1))
+    call max_jackknife_error_2(array%im,avr%im,err%im,bins(2))
+  end subroutine cmplx_max_jackknife_error_2
 end module statistics

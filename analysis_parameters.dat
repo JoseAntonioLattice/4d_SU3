@@ -1,0 +1,6 @@
+&analysis_parameters
+Lx = 16,
+Lt = 6,
+algorithm = "heatbath",
+equilibrium = T
+/
