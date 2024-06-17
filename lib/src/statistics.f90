@@ -6,8 +6,8 @@ module statistics
   implicit none
 
   private
-  public :: std_err, std_err_scalar, jackknife, max_jackknife_error,max_jackknife_error_2,&
-       cmplx_std_err, cmplx_max_jackknife_error_2
+  public :: std_err, std_err_scalar, jackknife, max_jackknife_error,max_jackknife_error_2
+  public :: cmplx_std_err, cmplx_max_jackknife_error_2
 
 contains
 

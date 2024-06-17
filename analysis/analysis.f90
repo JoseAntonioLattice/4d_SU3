@@ -26,19 +26,20 @@ program analysis
 
   type(observable) :: Ep,abs_poly
   real(dp), allocatable, dimension(:,:) :: corr_poly
-  real(dp), allocatable, dimension(:) :: avr_corr_poly, err_corr_poly
+  complex(dp), allocatable, dimension(:) :: avr_corr_poly, err_corr_poly
   complex(dp), allocatable, dimension(:,:) :: correlation_polyakov_loop
   integer(i4) :: i,j,k,l, i_beta, bins1, bins2
   real(dp), allocatable, dimension(:) :: beta, auto_correlation
   complex(dp), allocatable :: poly(:)
+  complex(dp) :: poly_avr, poly_err
   integer(i4), allocatable :: n_ms(:)
   logical :: ex
 
-  beta = [5.7_dp]![(i*0.1_dp,i=1,80)]
-
+  beta = [real(dp) ::]
+  beta = [beta, 5.7_dp]![(i*0.1_dp,i=1,80)]
   call read_input()  
   n_ms = [integer ::]
-  i = 23
+  i = 20
   do
      i = i + 1
      data_file = "data/Lx="//trim(int2str(Lx))//"/Lt="//trim(int2str(Lt))//"/"//"equilibrium"//"/"//trim(algorithm)&
@@ -65,7 +66,7 @@ program analysis
        , status = "unknown")
   !print*, '1 ok'
   do i_beta = 1,size(beta)
-     k = 23
+     k = 20
      l = 1
      do
      k = k + 1   
@@ -97,20 +98,25 @@ program analysis
      end do
      
      print*,'size E array', size(Ep%array)
+     call max_jackknife_error_2(poly%re,poly_avr%re,poly_err%re,bins1)
+     call max_jackknife_error_2(poly%im,poly_avr%im,poly_err%im,bins1)
      call max_jackknife_error_2(Ep%array,Ep%avr,Ep%err,bins1)
      call max_jackknife_error_2(abs_poly%array,abs_poly%avr,abs_poly%err,bins1)
-     abs_poly%avr = abs_poly%avr/Lx**3
-     abs_poly%err = abs_poly%err/Lx**3
+     !abs_poly%avr = abs_poly%avr/Lx**3
+     !abs_poly%err = abs_poly%err/Lx**3
+     !poly_avr = poly_avr/Lx**3
+     !poly_err = poly_err/Lx**3
      do j = 1,Lx/2-1
-        call max_jackknife_error_2(correlation_polyakov_loop(:,j)%re,avr_corr_poly(j),err_corr_poly(j),bins2)
-        avr_corr_poly(j) = avr_corr_poly(j)/(3*Lx**3)
-        err_corr_poly(j) = err_corr_poly(j)/(3*Lx**3)
-        avr_corr_poly(j) = avr_corr_poly(j) - (abs_poly%avr)**2
-        err_corr_poly(j) = sqrt((err_corr_poly(j))**2 + 4*(abs_poly%avr*abs_poly%err)**2)
+        call max_jackknife_error_2(correlation_polyakov_loop(:,j)%re,avr_corr_poly(j)%re,err_corr_poly(j)%re,bins2)
+        call max_jackknife_error_2(correlation_polyakov_loop(:,j)%im,avr_corr_poly(j)%im,err_corr_poly(j)%im,bins2)
+        !avr_corr_poly(j) = avr_corr_poly(j)/(3*Lx**3)
+        !err_corr_poly(j) = err_corr_poly(j)/(3*Lx**3)
+        !avr_corr_poly(j) = avr_corr_poly(j) -abs_poly%avr**2
+        !err_corr_poly(j) = sqrt((err_corr_poly(j))**2 + 4*(abs_poly%avr*abs_poly%err)**2)
      end do
      write(666,*) beta(i_beta),Ep%avr, Ep%err,bins1
      do j = 1, Lx/2 -1
-        write(777,*) -log(abs(avr_corr_poly(j)))/Lt, abs(err_corr_poly(j)/(avr_corr_poly(j)*Lt))
+        write(777,*) -log( avr_corr_poly(j) )/Lt!, abs(err_corr_poly(j)/(avr_corr_poly(j)*Lt))
      end do
   end do
   close(666)

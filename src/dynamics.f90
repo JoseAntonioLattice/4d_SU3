@@ -163,7 +163,7 @@ contains
        end do
     end do
 
-    avr_polyakov_loop = sum(polyakov_loop_array) 
+    avr_polyakov_loop = sum(polyakov_loop_array)/Lx**3 
 
     correlation_polyakov_loop = (0.0_dp,0.0_dp)
 
@@ -187,7 +187,8 @@ contains
           end do
        end do
     end do
-    
+
+    correlation_polyakov_loop = correlation_polyakov_loop/(3*Lx**3)
     Ep =  Ep/(3*number_of_planes*Lx**3*Lt)
     
   end subroutine take_measurements
