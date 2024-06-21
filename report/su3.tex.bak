@@ -138,7 +138,13 @@ One important quantity involving Polyakov loops is their correlation. The correl
 \begin{equation}
 	\langle P(\vec{x}\,) P(\vec{y}\,)^{\dagger} \rangle \propto e^{-L_t a V(r)} \left(1 +\mathcal{O}\left( e^{-L_t a \Delta E}\right) \right),
 \end{equation}
-where $r = |\vec{x} - \vec{y}\,|$. Up to a constant the static quark potential is
+where $r = |\vec{x} - \vec{y}\,|$. Numerically speaking, we compute
+
+\begin{equation}
+	\langle P(\vec{x}\,) P(\vec{y}\,)^{\dagger} \rangle = \frac{1}{3V}\sum_{x,\mu = 1,2,3}  P(\vec{x}\,) P\left(\vec{x}+r\hat{\mu}\right)^{\dagger}.
+\end{equation}
+
+ Up to a constant the static quark potential is
 \begin{equation}
 	aV(r) = - \log(\langle P(\vec{x}\,) P(\vec{y}\,)^{\dagger} \rangle)/L_t.
 \end{equation}

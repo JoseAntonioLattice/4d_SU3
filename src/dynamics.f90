@@ -145,7 +145,8 @@ contains
     complex(dp), intent(out) :: correlation_polyakov_loop(Lx/2-1)
     integer(i4) :: x,y,z,w,t,mu,nu, xp, yp, zp
     integer(i4), parameter :: d = 4, number_of_planes = d*(d-1)/2
-        
+    complex(dp) :: avg_poly(Lx)
+    
     Ep = 0.0_dp
     
     do x = 1, Lx
@@ -182,13 +183,30 @@ contains
                      polyakov_loop_array(x,yp,z) + &
                      polyakov_loop_array(x,y,zp) &
                      )
-
+!                correlation_polyakov_loop(t) = correlation_polyakov_loop(t) + &
+!                     wilson_loop(U,[x,y,z],1,t,Lt,Lx) + &
+!                     wilson_loop(U,[x,y,z],2,t,Lt,Lx) + &
+!                     wilson_loop(U,[x,y,z],3,t,Lt,Lx)
              end do
           end do
        end do
-    end do
+end do
 
     correlation_polyakov_loop = correlation_polyakov_loop/(3*Lx**3)
+
+    !do x = 1, Lx
+    !avg_poly(x) = sum(polyakov_loop_array(:,:,x))/Lx**2
+    !end do
+
+    !do t=1,Lx/2-1
+    !   do x=1,Lx
+    !   xp = mod(x+t,Lx); if(xp == 0) xp = Lx
+    !   correlation_polyakov_loop(t) = correlation_polyakov_loop(t) + avg_poly(x)*conjg(avg_poly(xp))
+    !   end do
+    !end do
+
+    !correlation_polyakov_loop = correlation_polyakov_loop/Lx
+    
     Ep =  Ep/(3*number_of_planes*Lx**3*Lt)
     
   end subroutine take_measurements
@@ -210,6 +228,37 @@ contains
     
   end function polyakov_loop
 
+
+  function wilson_loop(U,x,mu,nx,nt,Lx)
+    type(link_variable), dimension(:,:,:,:), intent(in) :: U
+    integer(i4), dimension(3), intent(in) :: x 
+    integer(i4), intent(in) :: mu,nx,nt,Lx
+    type(complex_3x3_matrix) :: product1,product2,product3,product4
+    complex(dp) :: wilson_loop
+    integer(i4) :: i
+    integer(i4), dimension(3) :: y,xp
+
+    y = x
+    xp = x
+    product1%matrix = one
+    product3%matrix = one
+    y(mu) = mod(y(mu)+nx,Lx); if(y(mu) == 0) y(mu) = Lx
+    do i = 1,nt
+       product1 = product1 * U(x(1),x(2),x(3),i)%link(4)
+       product3 = product3 * U(y(1),y(2),y(3),i)%link(4)
+    end do
+
+    product2%matrix = one
+    product4%matrix = one
+    do i = 1,nx
+       xp(mu) = mod(xp(mu)+i,Lx); if(xp(mu) == 0) xp(mu) = Lx
+       product2 = product2 * U(xp(1),xp(2),xp(3),nt)%link(mu)
+       product4 = product4 * U(xp(1),xp(2),xp(3),1 )%link(mu) 
+    end do
+    
+    wilson_loop = tr(product1*product2*dagger(product3)*dagger(product4))
+    
+  end function wilson_loop
   
   function inv_polyakov_loop(U,x,L)
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
@@ -427,7 +476,7 @@ contains
        do nu = 1, 4
           do rho = 1, 4
              do sigma = 1, 4
-                topological_density = topological_density + levi_civita(mu,nu,rho,sigma)*tr(F(U,x,mu,nu)*F(U,x,rho,sigma))
+                topological_density = topological_density - levi_civita(mu,nu,rho,sigma)*tr(F(U,x,mu,nu)*F(U,x,rho,sigma))
              end do
           end do
        end do

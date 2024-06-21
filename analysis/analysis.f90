@@ -39,7 +39,7 @@ program analysis
   beta = [beta, 5.7_dp]![(i*0.1_dp,i=1,80)]
   call read_input()  
   n_ms = [integer ::]
-  i = 20
+  i = 0
   do
      i = i + 1
      data_file = "data/Lx="//trim(int2str(Lx))//"/Lt="//trim(int2str(Lt))//"/"//"equilibrium"//"/"//trim(algorithm)&
@@ -53,7 +53,7 @@ program analysis
      write(*, nml = input_parameters)
      n_ms = [n_ms, N_measurements]
   end do
-  print*, n_ms
+  print*, n_ms,'holas'
   !stop
  
   allocate(Ep%array(sum(n_ms)),auto_correlation(sum(n_ms)), corr_poly(sum(n_ms),Lx/2-1))
@@ -66,7 +66,7 @@ program analysis
        , status = "unknown")
   !print*, '1 ok'
   do i_beta = 1,size(beta)
-     k = 20
+     k = 0
      l = 1
      do
      k = k + 1   
@@ -111,12 +111,12 @@ program analysis
         call max_jackknife_error_2(correlation_polyakov_loop(:,j)%im,avr_corr_poly(j)%im,err_corr_poly(j)%im,bins2)
         !avr_corr_poly(j) = avr_corr_poly(j)/(3*Lx**3)
         !err_corr_poly(j) = err_corr_poly(j)/(3*Lx**3)
-        !avr_corr_poly(j) = avr_corr_poly(j) -abs_poly%avr**2
+        avr_corr_poly(j) = avr_corr_poly(j) - abs_poly%avr**2
         !err_corr_poly(j) = sqrt((err_corr_poly(j))**2 + 4*(abs_poly%avr*abs_poly%err)**2)
      end do
      write(666,*) beta(i_beta),Ep%avr, Ep%err,bins1
      do j = 1, Lx/2 -1
-        write(777,*) -log( avr_corr_poly(j) )/Lt!, abs(err_corr_poly(j)/(avr_corr_poly(j)*Lt))
+        write(777,*) -log( abs(avr_corr_poly(j)) )/Lt!, abs(err_corr_poly(j)/(avr_corr_poly(j)*Lt))
      end do
   end do
   close(666)
