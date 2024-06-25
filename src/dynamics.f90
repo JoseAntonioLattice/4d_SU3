@@ -143,7 +143,7 @@ contains
     complex(dp) :: polyakov_loop_array(Lx,Lx,Lx)
     complex(dp), intent(out) :: avr_polyakov_loop
     complex(dp), intent(out) :: correlation_polyakov_loop(Lx/2-1)
-    integer(i4) :: x,y,z,w,t,mu,nu, xp, yp, zp
+    integer(i4) :: x,y,z,w,t,mu,nu, xp, yp, zp, zpp
     integer(i4), parameter :: d = 4, number_of_planes = d*(d-1)/2
     complex(dp) :: avg_poly(Lx)
     
@@ -170,29 +170,34 @@ contains
 
     do t = 1, Lx/2 - 1
        do x = 1, Lx
-          xp = mod(x+t,Lx); if(xp == 0) xp = Lx
+          !xp = mod(x+t,Lx); if(xp == 0) xp = Lx
           do y = 1, Lx
-             yp = mod(y+t,Lx); if(yp == 0) yp = Lx
-             do z = 1, Lx
-                zp = mod(z+t,Lx); if(zp == 0) zp = Lx
-                                
-                correlation_polyakov_loop(t) = correlation_polyakov_loop(t) + &
-                     polyakov_loop_array(x,y,z) * &
-                     conjg( &
-                     polyakov_loop_array(xp,y,z) + &
-                     polyakov_loop_array(x,yp,z) + &
-                     polyakov_loop_array(x,y,zp) &
-                     )
-!                correlation_polyakov_loop(t) = correlation_polyakov_loop(t) + &
-!                     wilson_loop(U,[x,y,z],1,t,Lt,Lx) + &
-!                     wilson_loop(U,[x,y,z],2,t,Lt,Lx) + &
-!                     wilson_loop(U,[x,y,z],3,t,Lt,Lx)
+             !yp = mod(y+t,Lx); if(yp == 0) yp = Lx
+             !do z = 1, Lx
+                !zp = mod(z+t,Lx); if(zp == 0) zp = Lx
+                do xp = 1, Lx
+                   do yp = 1,Lx
+                      do zp = 1,Lx
+                         zpp = mod(zp+t,Lx); if(zpp == 0) zpp = Lx
+                         correlation_polyakov_loop(t) = correlation_polyakov_loop(t) + &
+                              polyakov_loop_array(x,y,zp) * &
+                              conjg( polyakov_loop_array(xp,yp,zpp)) !+ &
+                         !polyakov_loop_array(x,yp,z) + &
+                         !polyakov_loop_array(x,y,zp) &
+                         !)
+                         !                correlation_polyakov_loop(t) = correlation_polyakov_loop(t) + &
+                         !                     wilson_loop(U,[x,y,z],1,t,Lt,Lx) + &
+                         !                     wilson_loop(U,[x,y,z],2,t,Lt,Lx) + &
+                         !
+                         !wilson_loop(U,[x,y,z],3,t,Lt,Lx)
+                      end do
+                   end do
              end do
           end do
        end do
-end do
-
-    correlation_polyakov_loop = correlation_polyakov_loop/(3*Lx**3)
+    end do
+    
+    correlation_polyakov_loop = correlation_polyakov_loop/(Lx**3)
 
     !do x = 1, Lx
     !avg_poly(x) = sum(polyakov_loop_array(:,:,x))/Lx**2
@@ -420,10 +425,31 @@ end do
     B%matrix(2,2) = exp(eigenv(2))
     B%matrix(3,3) = exp(eigenv(3))
     
-    res = C*B*dagger(C)
+    res = C*B*inv(C)
 
   end function my_exp
 
+  
+  ! -- Returns the inverse of a general squared matrix A
+  function inv(A) result(Ainv)
+    implicit none
+    type(complex_3x3_matrix)::  A
+    type(complex_3x3_matrix) :: Ainv
+    complex(dp)            :: work(3)            ! work array for LAPACK
+    integer         :: n,info,ipiv(3)     ! pivot indices
+    
+    ! Store A in Ainv to prevent it from being overwritten by LAPACK
+    Ainv%matrix = A%matrix
+    n = 3
+    ! SGETRF computes an LU factorization of a general M-by-N matrix A
+    ! using partial pivoting with row interchanges.
+    call zGETRF(n,n,Ainv%matrix,n,ipiv,info)
+    if (info.ne.0) stop 'Matrix is numerically singular!'
+    ! SGETRI computes the inverse of a matrix using the LU factorization
+    ! computed by SGETRF.
+    call zGETRI(n,Ainv%matrix,n,ipiv,work,n,info)
+    if (info.ne.0) stop 'Matrix inversion failed!'
+  end function inv
   
   function F(U,x,mu,nu)
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
@@ -483,5 +509,7 @@ end do
     end do
     !topological_density = -topological_density/(32*pi**2)
   end function topological_density
+
+
   
 end module dynamics
