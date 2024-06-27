@@ -64,7 +64,34 @@ contains
     
   end subroutine heatbath
 
+  subroutine overrelaxation(U,x,MU)
+    type(link_variable), dimension(:,:,:,:), intent(inOUT) :: U
+    integer(i4), intent(in) :: x(4),MU
 
+    type(complex_3x3_matrix) :: R, S, T, W, A
+    complex(dp), dimension(2,2) :: R2, S2, T2, W2
+
+    
+    A = STAPLES(U,X,MU)
+
+    R2 = TURN_2X2(A,1)
+    R2%MATRIX = R2%MATRIX/SQRT(DET2(R2))
+    R = turn_to_SU3(R2,1)
+    U(X(1),X(2),X(3),X(4))%LINK(MU) = R * dagger(U(X(1),X(2),X(3),X(4))%LINK(MU)) * R
+
+    S2 = TURN_2X2(A,2)
+    S2%MATRIX = S2%MATRIX/SQRT(DET2(S2))
+    S = turn_to_SU3(S2,2)
+    U(X(1),X(2),X(3),X(4))%LINK(MU) = S * dagger(U(X(1),X(2),X(3),X(4))%LINK(MU)) * S
+
+    T2 = TURN_2X2(A,1)
+    T2%MATRIX = T2%MATRIX/SQRT(DET2(T2))
+    T = turn_to_SU3(T2,3)
+    U(X(1),X(2),X(3),X(4))%LINK(MU) = T * dagger(U(X(1),X(2),X(3),X(4))%LINK(MU)) * T
+        
+  end subroutine overrelaxation
+  
+  
   function turn_2x2(A,n) result(X)
     type(complex_3x3_matrix) :: A
     integer(i4), intent(in) :: n
@@ -298,7 +325,7 @@ contains
 
   end function DS
 
-      function staples(U,x,mu) result(A)
+  function staples(U,x,mu) result(A)
 
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
     integer(i4), intent(in) :: x(4), mu

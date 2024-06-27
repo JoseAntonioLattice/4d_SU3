@@ -132,6 +132,18 @@ contains
              end do
           end do
        end do
+    else if( N == 3 .and. algorithm == 'overrelaxation' )then
+       do x = 1, Lx
+          do y = 1, Lx
+             do z = 1, Lx
+                do w = 1, Lt
+                   do mu = 1, d
+                      call overrelaxation(U,[x,y,z,w],mu)
+                   end do
+                end do
+             end do
+          end do
+       end do
     end if
   end subroutine sweeps
 
@@ -509,7 +521,6 @@ contains
     end do
     !topological_density = -topological_density/(32*pi**2)
   end function topological_density
-
 
   
 end module dynamics
