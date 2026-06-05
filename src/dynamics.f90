@@ -69,8 +69,8 @@ contains
     do i_beta = 1, size(beta)
        call thermalization(U,Lx,Lt,beta(i_beta),N,d,algorithm,N_thermalization)
        call create_measurements_file(Lx,Lt,beta(i_beta),algorithm,equilibrium)
-       call measurements_sweeps(U,Lx,Lt,beta(i_beta),N,d,algorithm,N_measurements,N_skip)
-       
+       !call measurements_sweeps(U,Lx,Lt,beta(i_beta),N,d,algorithm,N_measurements,N_skip)
+       call wilson_flow_euler(U)
     end do
   end subroutine equilibrium_dynamics
   
@@ -80,12 +80,11 @@ contains
     real(dp), intent(in) :: beta
     character(*), intent(in) :: algorithm
     integer(i4), intent(in) :: N_thermalization
-
     integer(i4) :: i
 
     do i = 1, N_thermalization
        call sweeps(U,Lx,Lt,beta,N,d,algorithm)
-       if(mod(i,10) == 0) call normalization(U,Lx,Lt)
+       !if(mod(i,10) == 0) call normalization(U,Lx,Lt)
     end do
    end subroutine thermalization
 
@@ -152,15 +151,15 @@ contains
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
     integer(i4), intent(in) ::  Lx,Lt
     real(dp), intent(out) :: Ep
-    complex(dp) :: polyakov_loop_array(Lx,Lx,Lx)
+    complex(dp) :: polyakov_loop_array(Lx,Lx,Lx), polyakov_loop_proj(Lx)
     complex(dp), intent(out) :: avr_polyakov_loop
     complex(dp), intent(out) :: correlation_polyakov_loop(Lx/2-1)
     integer(i4) :: x,y,z,w,t,mu,nu, xp, yp, zp, zpp
     integer(i4), parameter :: d = 4, number_of_planes = d*(d-1)/2
     complex(dp) :: avg_poly(Lx)
     
-    Ep = 0.0_dp
-    
+
+        Ep = 0.0_dp
     do x = 1, Lx
        do y = 1, Lx
           do z = 1, Lx
@@ -176,24 +175,32 @@ contains
        end do
     end do
 
+    
+    do x = 1, Lx
+       polyakov_loop_proj(x) = sum(polyakov_loop_array(x,:,:))/Lx**2
+    end do
+
+
+    
     avr_polyakov_loop = sum(polyakov_loop_array)/Lx**3 
 
     correlation_polyakov_loop = (0.0_dp,0.0_dp)
 
     do t = 1, Lx/2 - 1
-       do x = 1, Lx
+       correlation_polyakov_loop(t) = polyakov_loop_proj(1)*conjg(polyakov_loop_proj(t))
+       !do x = 1, Lx
           !xp = mod(x+t,Lx); if(xp == 0) xp = Lx
-          do y = 1, Lx
+          !do y = 1, Lx
              !yp = mod(y+t,Lx); if(yp == 0) yp = Lx
              !do z = 1, Lx
                 !zp = mod(z+t,Lx); if(zp == 0) zp = Lx
-                do xp = 1, Lx
-                   do yp = 1,Lx
-                      do zp = 1,Lx
-                         zpp = mod(zp+t,Lx); if(zpp == 0) zpp = Lx
-                         correlation_polyakov_loop(t) = correlation_polyakov_loop(t) + &
-                              polyakov_loop_array(x,y,zp) * &
-                              conjg( polyakov_loop_array(xp,yp,zpp)) !+ &
+                !do xp = 1, Lx
+                   !do yp = 1,Lx
+                      !do zp = 1,Lx
+                         !zpp = mod(zp+t,Lx); if(zpp == 0) zpp = Lx
+                         !correlation_polyakov_loop(t) = correlation_polyakov_loop(t) + &
+                         !     polyakov_loop_array(x,y,zp) * &
+                         !     conjg( polyakov_loop_array(xp,yp,zpp)) !+ &
                          !polyakov_loop_array(x,yp,z) + &
                          !polyakov_loop_array(x,y,zp) &
                          !)
@@ -202,14 +209,14 @@ contains
                          !                     wilson_loop(U,[x,y,z],2,t,Lt,Lx) + &
                          !
                          !wilson_loop(U,[x,y,z],3,t,Lt,Lx)
-                      end do
-                   end do
-             end do
-          end do
-       end do
+                      !end do
+                   !end do
+             !end do
+          !end do
+       !end do
     end do
     
-    correlation_polyakov_loop = correlation_polyakov_loop/(Lx**3)
+    !correlation_polyakov_loop = correlation_polyakov_loop/(Lx**3)
 
     !do x = 1, Lx
     !avg_poly(x) = sum(polyakov_loop_array(:,:,x))/Lx**2
@@ -228,6 +235,27 @@ contains
     
   end subroutine take_measurements
 
+  function energy(U)
+
+    Ep = 0.0_dp
+    do x = 1, Lx
+       do y = 1, Lx
+          do z = 1, Lx
+             polyakov_loop_array(x,y,z) = polyakov_loop(U,[x,y,z],Lt)
+             do w = 1, Lt
+                do mu = 1, d - 1
+                   do nu = mu + 1, d
+                      Ep = Ep + real(tr(plaquette(U,[x,y,z,w],mu,nu)),dp)
+                   end do
+                end do
+             end do
+          end do
+       end do
+    end do
+
+    
+  end function energy
+  
   function polyakov_loop(U,x,L)
     type(link_variable), dimension(:,:,:,:), intent(in) :: U
     integer(i4), dimension(3), intent(in) :: x 
@@ -391,56 +419,133 @@ contains
     
   end function TA
 
-  subroutine wilson_flow_euler(U,V,x,mu)
+  subroutine wilson_flow_euler(U)
     type(link_variable), dimension(:,:,:,:), intent(inout) :: U
-    type(complex_3x3_matrix), intent(out) :: V
+    type(link_variable), dimension(size(U(:,1,1,1)),size(U(1,:,1,1)),size(U(1,1,:,1)),size(U(1,1,1,:))) :: V
     type(complex_3x3_matrix) :: B
-    integer(i4), intent(in) :: x(4), mu
+    integer(i4) :: x(4), mu
     real(dp) :: epsilon = 0.1_dp
-    integer :: i
-    integer, parameter :: n = 30
-    !type(complex_3x3_matrix), dimension(n), intent(out) :: V
-
-    V = U(x(1),x(2),x(3),x(4))%link(mu)
+    integer :: i, x1, x2, x3, x4
+    integer, parameter :: n = 100
+    complex(dp) :: Q
+    
+    !print*, 0, topological_density(U,x)
+    print*, "inside wilson flow"
     do i = 1, n
-       B = Zeta(U,x,mu)
-       B%matrix = B%matrix*epsilon
-       U(x(1),x(2),x(3),x(4))%link(mu) = my_exp(B) * U(x(1),x(2),x(3),x(4))%link(mu)
-       !V(i) = U(x(1),x(2),x(3),x(4))%link(mu)
+       Q = 0.0_dp
+       do x1 = 1, size(U(:,1,1,1))
+          do x2 = 1, size(U(1,:,1,1))
+             do x3 = 1, size(U(1,1,:,1))
+                do x4 = 1, size(U(1,1,1,:))
+                   x = [x1,x2,x3,x4]
+                   do mu = 1, 4
+                      B = Zeta(U,x,mu)
+                      B%matrix = B%matrix*epsilon
+                      V(x(1),x(2),x(3),x(4))%link(mu)%matrix = matmul(my_exp(B%matrix) , U(x(1),x(2),x(3),x(4))%link(mu)%matrix)
+                   end do
+                   Q = Q + topological_density(U,x)
+                end do
+             end do
+          end do
+       end do
+       U = V
+       print*, i, -Q/(32*pi**2)
     end do
   end subroutine wilson_flow_euler
 
-  function my_exp(W) result(res)
-    type(complex_3x3_matrix), intent(in) :: W
-    type(complex_3x3_matrix) :: res, B, C
+  subroutine wilson_flow_rk4(U)
+    type(link_variable), dimension(:,:,:,:), intent(inout) :: U
+    type(link_variable), dimension(size(U(:,1,1,1)),size(U(1,:,1,1)),size(U(1,1,:,1)),size(U(1,1,1,:))) :: V
+    type(complex_3x3_matrix) :: B
+    integer(i4) :: x(4), mu
+    real(dp) :: epsilon = 0.1_dp
+    integer :: i, x1, x2, x3, x4
+    integer, parameter :: n = 100
+    complex(dp) :: Q
     
-    integer, parameter :: n = 3
-    integer, parameter :: lda = 3
-    integer, parameter :: ldvl  = n
-    integer, parameter :: ldvr = n
-    integer, parameter :: lwork = 2*n
-    
-    complex(dp), dimension(n,n) :: A
-    complex(dp), dimension(lwork) :: work
-    complex(dp), dimension(n) :: eigenv
-    complex(dp), dimension(ldvl,n) :: vl
-    complex(dp), dimension(ldvr,n) :: vr
-    real(dp), dimension(2*n) :: rwork
-    integer :: info
+    !print*, 0, topological_density(U,x)
+    print*, "inside wilson flow"
+    do i = 1, n
+       Q = 0.0_dp
+       do x1 = 1, size(U(:,1,1,1))
+          do x2 = 1, size(U(1,:,1,1))
+             do x3 = 1, size(U(1,1,:,1))
+                do x4 = 1, size(U(1,1,1,:))
+                   x = [x1,x2,x3,x4]
+                   do mu = 1, 4
+                      W1 = Zeta(U,x,mu)
+                      B%matrix = B%matrix*epsilon
+                      V(x(1),x(2),x(3),x(4))%link(mu)%matrix = matmul(my_exp(B%matrix) , U(x(1),x(2),x(3),x(4))%link(mu)%matrix)
+                   end do
+                   Q = Q + topological_density(U,x)
+                end do
+             end do
+          end do
+       end do
+       U = V
+       print*, i, action(U)!-Q/(32*pi**2)
+    end do
+  end subroutine wilson_flow_euler
 
-    A = W%matrix
-    call zgeev('N', 'V', n, A, lda,eigenv, vl, ldvl, vr, ldvr, WORK, lwork, rwork,INFO)
-
-    C%matrix = vr
-    B%matrix = one
-    B%matrix(1,1) = exp(eigenv(1))
-    B%matrix(2,2) = exp(eigenv(2))
-    B%matrix(3,3) = exp(eigenv(3))
+  function my_exp(X) result(expX)
+    complex(dp), dimension(3,3), intent(in) :: X
+    complex(dp), dimension(3,3) :: expX, B, C
+    integer, parameter :: K = 20
+    !Lie algebra su(3) matrix
+    complex(dp), dimension(3,3) :: Id
+    complex(dp) :: q0, q1, q2, q0old, q1old, q2old
+    complex(dp) :: d, t, trB
+    integer :: i
+    complex(dp) :: ii = (0.0_dp,1.0_dp)
     
-    res = C*B*inv(C)
+    Id = 0.0_dp
+    Id(1,1) = 1.0_dp
+    Id(2,2) = 1.0_dp
+    Id(3,3) = 1.0_dp
+    d = ii*determinant(3,X)
+    B = matmul(X,X)
+    trB = B(1,1)+B(2,2)+B(3,3)
+    t = -0.5*trB    
+    q0old = 1.0_dp/gamma(1.0_dp*(K+1))
+    q1old = (0.0_dp,0.0_dp)
+    q2old = (0.0_dp,0.0_dp)
+    do i = K-1,0,-1
+       q0 = 1.0_dp/gamma(1.0_dp*(i+1)) - ii*d*q2old
+       q1 = q0old - t*q2old
+       q2 = q1old
+       q0old = q0
+       q1old = q1
+       q2old = q2
+    end do
+
+    expX = q0*Id + q1*X + q2*B
+
 
   end function my_exp
 
+
+  pure recursive function determinant(n, a) result(det)
+    implicit none
+    integer, intent(in) :: n
+    complex(dp), dimension(3,3), intent(in) :: a
+    complex(dp) :: det
+    integer :: i, sgn
+    complex(dp), dimension(n-1, n-1) :: b
+    
+    if (n == 1) then
+       det = a(1,1)
+    else
+       det = 0.0
+       sgn = 1
+       do i = 1, n
+          ! Extract submatrix
+          b(:, :(i-1)) = a(2:, :i-1)
+          b(:, i:) = a(2:, i+1:)
+          det = det + sgn * a(1, i) * determinant(n-1, b)
+          sgn = -sgn
+       end do
+    end if
+  end function determinant
   
   ! -- Returns the inverse of a general squared matrix A
   function inv(A) result(Ainv)

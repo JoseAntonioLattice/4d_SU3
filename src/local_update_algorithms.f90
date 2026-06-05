@@ -72,22 +72,22 @@ contains
     complex(dp), dimension(2,2) :: R2, S2, T2, W2
 
     
-    A = STAPLES(U,X,MU)
+    !A = STAPLES(U,X,MU)
 
-    R2 = TURN_2X2(A,1)
-    R2%MATRIX = R2%MATRIX/SQRT(DET2(R2))
-    R = turn_to_SU3(R2,1)
-    U(X(1),X(2),X(3),X(4))%LINK(MU) = R * dagger(U(X(1),X(2),X(3),X(4))%LINK(MU)) * R
+    !R2 = TURN_2X2(A,1)
+    !R2%MATRIX = R2%MATRIX/SQRT(DET2(R2))
+    !R = turn_to_SU3(R2,1)
+    !U(X(1),X(2),X(3),X(4))%LINK(MU) = R * dagger(U(X(1),X(2),X(3),X(4))%LINK(MU)) * R
 
-    S2 = TURN_2X2(A,2)
-    S2%MATRIX = S2%MATRIX/SQRT(DET2(S2))
-    S = turn_to_SU3(S2,2)
-    U(X(1),X(2),X(3),X(4))%LINK(MU) = S * dagger(U(X(1),X(2),X(3),X(4))%LINK(MU)) * S
+    !S2 = TURN_2X2(A,2)
+    !S2%MATRIX = S2%MATRIX/SQRT(DET2(S2))
+    !S = turn_to_SU3(S2,2)
+    !U(X(1),X(2),X(3),X(4))%LINK(MU) = S * dagger(U(X(1),X(2),X(3),X(4))%LINK(MU)) * S
 
-    T2 = TURN_2X2(A,1)
-    T2%MATRIX = T2%MATRIX/SQRT(DET2(T2))
-    T = turn_to_SU3(T2,3)
-    U(X(1),X(2),X(3),X(4))%LINK(MU) = T * dagger(U(X(1),X(2),X(3),X(4))%LINK(MU)) * T
+    !T2 = TURN_2X2(A,1)
+    !T2%MATRIX = T2%MATRIX/SQRT(DET2(T2))
+    !T = turn_to_SU3(T2,3)
+    !U(X(1),X(2),X(3),X(4))%LINK(MU) = T * dagger(U(X(1),X(2),X(3),X(4))%LINK(MU)) * T
         
   end subroutine overrelaxation
   
